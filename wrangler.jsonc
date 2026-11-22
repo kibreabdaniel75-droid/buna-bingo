@@ -1,0 +1,26 @@
+{
+  "name": "buna-bingo-backend",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-22",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "buna-bingo-db",
+      "database_id": "1cd8afc5-a97c-4810-b868-91502ac216d2"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "BINGO_ROOM",
+        "class_name": "BingoRoom"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["BingoRoom"]
+    }
+  ]
+}
