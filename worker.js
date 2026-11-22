@@ -64,11 +64,64 @@ async function verifyTelegram(initData, botToken) {
   }
 }
 
+async function sendTelegramMessage(env, chatId) {
+  const url = `https://api.telegram.org/bot${env.BOT_TOKEN}/sendMessage`;
+
+  return fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: "👋 Welcome to BUNA BINGO!\n\nReady to play? Tap the button below to enter the game.",
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "🎮 Play BUNA BINGO",
+              web_app: {
+                url: "https://buna-bingo-backend.kibreabdaniel75.workers.dev/"
+              }
+            }
+          ]
+        ]
+      }
+    })
+  });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // Telegram authentication
+    // Telegram bot webhook
+    if (
+      url.pathname === "/api/telegram/webhook" &&
+      request.method === "POST"
+    ) {
+      try {
+        const update = await request.json();
+        const message = update.message;
+
+        if (
+          message &&
+          typeof message.text === "string" &&
+          message.text.startsWith("/start")
+        ) {
+          await sendTelegramMessage(env, message.chat.id);
+        }
+
+        return Response.json({ ok: true });
+      } catch (error) {
+        return Response.json(
+          { ok: false, error: "Webhook failed" },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Telegram Mini App authentication
     if (
       url.pathname === "/api/auth/telegram" &&
       request.method === "POST"
@@ -133,7 +186,7 @@ export default {
       return env.BINGO_ROOM.get(id).fetch(request);
     }
 
-    // Website and Mini App files
+    // Website and Mini App
     if (!url.pathname.startsWith("/api/")) {
       return env.ASSETS.fetch(request);
     }
