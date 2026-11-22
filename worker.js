@@ -33,7 +33,11 @@ async function verifyTelegram(initData, botToken) {
     );
 
     return new Uint8Array(
-      await crypto.subtle.sign("HMAC", key, encoder.encode(message))
+      await crypto.subtle.sign(
+        "HMAC",
+        key,
+        encoder.encode(message)
+      )
     );
   }
 
@@ -65,41 +69,58 @@ async function verifyTelegram(initData, botToken) {
 }
 
 async function sendTelegramMessage(env, chatId) {
-  const url = `https://api.telegram.org/bot${env.BOT_TOKEN}/sendMessage`;
-
-  return fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: "👋 Welcome to BUNA BINGO!\n\nReady to play? Tap the button below to enter the game.",
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: "🎮 Play BUNA BINGO",
-              web_app: {
-                url: "https://buna-bingo-backend.kibreabdaniel75.workers.dev/"
+  const response = await fetch(
+    `https://api.telegram.org/bot${env.BOT_TOKEN}/sendMessage`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: "👋 Welcome to BUNA BINGO!\n\nReady to play? Tap the button below to enter the game.",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "🎮 Play BUNA BINGO",
+                web_app: {
+                  url: "https://buna-bingo-backend.kibreabdaniel75.workers.dev/"
+                }
               }
-            }
+            ]
           ]
-        ]
-      }
-    })
-  });
+        }
+      })
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Telegram message delivery failed");
+  }
+
+  return response.json();
 }
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // Telegram bot webhook
+    // Telegram webhook
     if (
       url.pathname === "/api/telegram/webhook" &&
       request.method === "POST"
     ) {
+      if (
+        !env.WEBHOOK_SECRET ||
+        request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== env.WEBHOOK_SECRET
+      ) {
+        return Response.json(
+          { ok: false, error: "Unauthorized" },
+          { status: 401 }
+        );
+      }
+
       try {
         const update = await request.json();
         const message = update.message;
@@ -113,6 +134,7 @@ export default {
         }
 
         return Response.json({ ok: true });
+
       } catch (error) {
         return Response.json(
           { ok: false, error: "Webhook failed" },
@@ -180,13 +202,13 @@ export default {
       }
     }
 
-    // Bingo game room
+    // Bingo room
     if (url.pathname === "/api/room") {
       const id = env.BINGO_ROOM.idFromName("main");
       return env.BINGO_ROOM.get(id).fetch(request);
     }
 
-    // Website and Mini App
+    // Website
     if (!url.pathname.startsWith("/api/")) {
       return env.ASSETS.fetch(request);
     }
