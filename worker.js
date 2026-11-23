@@ -23,6 +23,17 @@ async function tg(env, method, data) {
   return result;
 }
 
+// REMOVE OLD KEYBOARD
+async function removeKeyboard(env, chatId) {
+  await tg(env, "sendMessage", {
+    chat_id: chatId,
+    text: " ",
+    reply_markup: {
+      remove_keyboard: true
+    }
+  });
+}
+
 // FIVE MAIN MENU BUTTONS
 function menuKeyboard() {
   return {
@@ -46,7 +57,7 @@ function menuKeyboard() {
   };
 }
 
-// CONTACT BUTTON ONLY
+// CONTACT BUTTON
 function contactKeyboard() {
   return {
     keyboard: [
@@ -64,6 +75,8 @@ function contactKeyboard() {
 
 // WELCOME MESSAGE
 async function sendWelcome(env, chatId) {
+  await removeKeyboard(env, chatId);
+
   await tg(env, "sendMessage", {
     chat_id: chatId,
     text:
@@ -154,7 +167,7 @@ async function getOrCreatePlayer(env, user) {
   return player;
 }
 
-// REFERRAL REGISTRATION
+// REGISTER REFERRAL
 async function registerReferral(env, player, payload) {
   if (!payload || !payload.startsWith("ref_")) return;
 
@@ -298,10 +311,10 @@ async function handleContact(env, message) {
   });
 }
 
-// TELEGRAM WEBHOOK
+// WEBHOOK HANDLER
 async function handleWebhook(env, update) {
 
-  // VERIFY CHANNEL BUTTON
+  // VERIFY CHANNEL
   if (update.callback_query) {
     const query = update.callback_query;
 
@@ -356,7 +369,6 @@ async function handleWebhook(env, update) {
     const payload = message.text.split(/\s+/)[1];
 
     await registerReferral(env, player, payload);
-
     await sendWelcome(env, chatId);
     return;
   }
@@ -398,7 +410,7 @@ async function handleWebhook(env, update) {
     return;
   }
 
-  // REQUIRE CONTACT BEFORE MENU
+  // REQUIRE CONTACT
   if (!player.phone_number) {
     await tg(env, "sendMessage", {
       chat_id: chatId,
@@ -408,7 +420,7 @@ async function handleWebhook(env, update) {
     return;
   }
 
-  // MAIN MENU ACTIONS
+  // MAIN MENU
   switch (message.text) {
     case "💰 Balance":
       await showBalance(env, chatId, player);
@@ -431,7 +443,7 @@ async function handleWebhook(env, update) {
   }
 }
 
-// TELEGRAM MINI APP AUTHENTICATION
+// MINI APP AUTHENTICATION
 async function verifyTelegram(initData, botToken) {
   if (typeof initData !== "string" || !botToken) return null;
 
