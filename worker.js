@@ -67,7 +67,7 @@ function contactKeyboard() {
 
 // WELCOME MESSAGE
 async function sendWelcome(env, chatId) {
-  await removeKeyboard(env, chatId);
+  
 
   await tg(env, "sendMessage", {
     chat_id: chatId,
