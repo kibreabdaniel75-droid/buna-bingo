@@ -18,7 +18,10 @@ async function tg(env, method, data) {
   const result = await response.json();
 
   if (!result.ok) {
-    throw new Error("Telegram API: " + result.description);
+    console.error("TELEGRAM API REJECTED:", method, result);
+    throw new Error(
+      "Telegram API " + method + ": " + JSON.stringify(result)
+    );
   }
 
   return result;
@@ -280,7 +283,6 @@ async function handleContact(env, message) {
 
 // WEBHOOK HANDLER
 async function handleWebhook(env, update) {
-  // VERIFY CHANNEL
   if (update.callback_query) {
     const query = update.callback_query;
 
@@ -326,7 +328,7 @@ async function handleWebhook(env, update) {
   const chatId = message.chat.id;
   const user = message.from;
 
-  // START COMMAND
+  // START
   if (
     typeof message.text === "string" &&
     message.text.startsWith("/start")
@@ -339,7 +341,7 @@ async function handleWebhook(env, update) {
     return;
   }
 
-  // CONTACT SHARING
+  // CONTACT
   if (message.contact) {
     let joined = false;
 
@@ -360,7 +362,7 @@ async function handleWebhook(env, update) {
 
   const player = await getOrCreatePlayer(env, user);
 
-  // CHECK CHANNEL MEMBERSHIP
+  // MEMBERSHIP
   let joined = false;
 
   try {
@@ -380,7 +382,7 @@ async function handleWebhook(env, update) {
     return;
   }
 
-  // REQUIRE CONTACT
+  // CONTACT REQUIRED
   if (!player.phone_number) {
     await tg(env, "sendMessage", {
       chat_id: chatId,
@@ -390,7 +392,7 @@ async function handleWebhook(env, update) {
     return;
   }
 
-  // MAIN MENU
+  // MENU
   switch (message.text) {
     case "💰 Balance":
       await showBalance(env, chatId, player);
@@ -506,7 +508,6 @@ export default {
 
         return Response.json({ ok: true });
       } catch (error) {
-        // THIS LOG WILL SHOW THE REAL ERROR IN CLOUDFLARE
         console.error("BUNA BINGO WEBHOOK ERROR:", error);
 
         return Response.json(
@@ -516,7 +517,7 @@ export default {
       }
     }
 
-    // MINI APP AUTHENTICATION
+    // MINI APP AUTH
     if (
       url.pathname === "/api/auth/telegram" &&
       request.method === "POST"
