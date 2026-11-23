@@ -4,6 +4,7 @@ const CHANNEL = "@bunabingoo";
 const BOT_USERNAME = "BunaBingoGameBot";
 const SUPPORT = "@bunabingoosupport";
 
+// TELEGRAM API
 async function tg(env, method, data) {
   const response = await fetch(
     `https://api.telegram.org/bot${env.BOT_TOKEN}/${method}`,
@@ -28,22 +29,15 @@ async function removeKeyboard(env, chatId) {
   await tg(env, "sendMessage", {
     chat_id: chatId,
     text: " ",
-    reply_markup: {
-      remove_keyboard: true
-    }
+    reply_markup: { remove_keyboard: true }
   });
 }
 
-// FIVE MAIN MENU BUTTONS
+// MAIN MENU
 function menuKeyboard() {
   return {
     keyboard: [
-      [
-        {
-          text: "🎮 Play BUNA BINGO",
-          web_app: { url: GAME_URL }
-        }
-      ],
+      [{ text: "🎮 Play BUNA BINGO", web_app: { url: GAME_URL } }],
       [
         { text: "💰 Balance" },
         { text: "🎮 Game Rules" }
@@ -61,12 +55,7 @@ function menuKeyboard() {
 function contactKeyboard() {
   return {
     keyboard: [
-      [
-        {
-          text: "📱 Share Contact",
-          request_contact: true
-        }
-      ]
+      [{ text: "📱 Share Contact", request_contact: true }]
     ],
     resize_keyboard: true,
     one_time_keyboard: true
@@ -85,18 +74,8 @@ async function sendWelcome(env, chatId) {
       "ቻናሉን እንደተቀላቀሉ ቦቱ በራሱ ወዲያውኑ ያረጋግጣል!",
     reply_markup: {
       inline_keyboard: [
-        [
-          {
-            text: "📢 Join Telegram Channel",
-            url: "https://t.me/bunabingoo"
-          }
-        ],
-        [
-          {
-            text: "✅ I've Joined — Verify",
-            callback_data: "verify_channel"
-          }
-        ]
+        [{ text: "📢 Join Telegram Channel", url: "https://t.me/bunabingoo" }],
+        [{ text: "✅ I've Joined — Verify", callback_data: "verify_channel" }]
       ]
     }
   });
@@ -142,9 +121,7 @@ async function getOrCreatePlayer(env, user) {
   ).run();
 
   let player = await env.DB.prepare(`
-    SELECT *
-    FROM players
-    WHERE telegram_id = ?
+    SELECT * FROM players WHERE telegram_id = ?
   `).bind(telegramId).first();
 
   if (!player.referral_code) {
@@ -158,9 +135,7 @@ async function getOrCreatePlayer(env, user) {
     `).bind(code, telegramId).run();
 
     player = await env.DB.prepare(`
-      SELECT *
-      FROM players
-      WHERE telegram_id = ?
+      SELECT * FROM players WHERE telegram_id = ?
     `).bind(telegramId).first();
   }
 
@@ -174,14 +149,10 @@ async function registerReferral(env, player, payload) {
   const code = payload.slice(4);
 
   const referrer = await env.DB.prepare(`
-    SELECT telegram_id
-    FROM players
-    WHERE referral_code = ?
+    SELECT telegram_id FROM players WHERE referral_code = ?
   `).bind(code).first();
 
-  if (!referrer || referrer.telegram_id === player.telegram_id) {
-    return;
-  }
+  if (!referrer || referrer.telegram_id === player.telegram_id) return;
 
   await env.DB.prepare(`
     INSERT OR IGNORE INTO referrals (
@@ -254,14 +225,10 @@ async function showInvite(env, chatId, player) {
       Number(count.total || 0),
     reply_markup: {
       inline_keyboard: [
-        [
-          {
-            text: "📤 Share Invite Link",
-            url:
-              "https://t.me/share/url?url=" +
-              encodeURIComponent(link)
-          }
-        ]
+        [{
+          text: "📤 Share Invite Link",
+          url: "https://t.me/share/url?url=" + encodeURIComponent(link)
+        }]
       ]
     }
   });
@@ -313,7 +280,6 @@ async function handleContact(env, message) {
 
 // WEBHOOK HANDLER
 async function handleWebhook(env, update) {
-
   // VERIFY CHANNEL
   if (update.callback_query) {
     const query = update.callback_query;
@@ -333,7 +299,6 @@ async function handleWebhook(env, update) {
             text: "✅ ቻናሉን በተሳካ ሁኔታ ተቀላቅለዋል! እንኳን ደስ አለዎት።",
             reply_markup: contactKeyboard()
           });
-
         } else {
           await tg(env, "answerCallbackQuery", {
             callback_query_id: query.id,
@@ -341,8 +306,9 @@ async function handleWebhook(env, update) {
             show_alert: true
           });
         }
+      } catch (error) {
+        console.error("CHANNEL VERIFICATION ERROR:", error);
 
-      } catch {
         await tg(env, "answerCallbackQuery", {
           callback_query_id: query.id,
           text: "ማረጋገጥ አልተቻለም። እንደገና ይሞክሩ።",
@@ -379,7 +345,9 @@ async function handleWebhook(env, update) {
 
     try {
       joined = await checkMembership(env, user.id);
-    } catch {}
+    } catch (error) {
+      console.error("CONTACT MEMBERSHIP CHECK ERROR:", error);
+    }
 
     if (!joined) {
       await sendWelcome(env, chatId);
@@ -397,7 +365,9 @@ async function handleWebhook(env, update) {
 
   try {
     joined = await checkMembership(env, user.id);
-  } catch {
+  } catch (error) {
+    console.error("MEMBERSHIP CHECK ERROR:", error);
+
     await tg(env, "sendMessage", {
       chat_id: chatId,
       text: "⚠️ የቻናሉን አባልነት ማረጋገጥ አልተቻለም።"
@@ -533,9 +503,12 @@ export default {
       try {
         const update = await request.json();
         await handleWebhook(env, update);
-        return Response.json({ ok: true });
 
+        return Response.json({ ok: true });
       } catch (error) {
+        // THIS LOG WILL SHOW THE REAL ERROR IN CLOUDFLARE
+        console.error("BUNA BINGO WEBHOOK ERROR:", error);
+
         return Response.json(
           { ok: false, error: "Webhook failed" },
           { status: 500 }
@@ -579,8 +552,9 @@ export default {
             cards_count: player.cards_count
           }
         });
-
       } catch (error) {
+        console.error("MINI APP AUTH ERROR:", error);
+
         return Response.json(
           { success: false, error: "Authentication failed" },
           { status: 500 }
