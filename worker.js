@@ -23,9 +23,16 @@ async function tg(env, method, data) {
   return result;
 }
 
+// FIVE MAIN MENU BUTTONS
 function menuKeyboard() {
   return {
     keyboard: [
+      [
+        {
+          text: "🎮 Play BUNA BINGO",
+          web_app: { url: GAME_URL }
+        }
+      ],
       [
         { text: "💰 Balance" },
         { text: "🎮 Game Rules" }
@@ -33,19 +40,29 @@ function menuKeyboard() {
       [
         { text: "🎧 Support" },
         { text: "🔗 Invite Link" }
-      ],
-      [
-        { text: "📱 Share Contact", request_contact: true },
-        {
-          text: "🎮 Play BUNA BINGO",
-          web_app: { url: GAME_URL }
-        }
       ]
     ],
     resize_keyboard: true
   };
 }
 
+// CONTACT BUTTON ONLY
+function contactKeyboard() {
+  return {
+    keyboard: [
+      [
+        {
+          text: "📱 Share Contact",
+          request_contact: true
+        }
+      ]
+    ],
+    resize_keyboard: true,
+    one_time_keyboard: true
+  };
+}
+
+// WELCOME MESSAGE
 async function sendWelcome(env, chatId) {
   await tg(env, "sendMessage", {
     chat_id: chatId,
@@ -70,14 +87,9 @@ async function sendWelcome(env, chatId) {
       ]
     }
   });
-
-  await tg(env, "sendMessage", {
-    chat_id: chatId,
-    text: "👇 ከታች ያሉትን ሜኑዎች ይጠቀሙ።",
-    reply_markup: menuKeyboard()
-  });
 }
 
+// CHECK CHANNEL MEMBERSHIP
 async function checkMembership(env, userId) {
   const result = await tg(env, "getChatMember", {
     chat_id: CHANNEL,
@@ -94,6 +106,7 @@ async function checkMembership(env, userId) {
   );
 }
 
+// CREATE OR UPDATE PLAYER
 async function getOrCreatePlayer(env, user) {
   const telegramId = String(user.id);
 
@@ -141,6 +154,7 @@ async function getOrCreatePlayer(env, user) {
   return player;
 }
 
+// REFERRAL REGISTRATION
 async function registerReferral(env, player, payload) {
   if (!payload || !payload.startsWith("ref_")) return;
 
@@ -168,6 +182,7 @@ async function registerReferral(env, player, payload) {
   ).run();
 }
 
+// BALANCE
 async function showBalance(env, chatId, player) {
   await tg(env, "sendMessage", {
     chat_id: chatId,
@@ -183,6 +198,7 @@ async function showBalance(env, chatId, player) {
   });
 }
 
+// GAME RULES
 async function showRules(env, chatId) {
   await tg(env, "sendMessage", {
     chat_id: chatId,
@@ -196,6 +212,7 @@ async function showRules(env, chatId) {
   });
 }
 
+// SUPPORT
 async function showSupport(env, chatId) {
   await tg(env, "sendMessage", {
     chat_id: chatId,
@@ -204,6 +221,7 @@ async function showSupport(env, chatId) {
   });
 }
 
+// INVITE LINK
 async function showInvite(env, chatId, player) {
   const count = await env.DB.prepare(`
     SELECT COUNT(*) AS total
@@ -236,6 +254,7 @@ async function showInvite(env, chatId, player) {
   });
 }
 
+// HANDLE CONTACT
 async function handleContact(env, message) {
   const sender = message.from;
   const contact = message.contact;
@@ -247,7 +266,7 @@ async function handleContact(env, message) {
     await tg(env, "sendMessage", {
       chat_id: message.chat.id,
       text: "⚠️ እባክዎ የራስዎን Contact በShare Contact ቁልፍ ያጋሩ።",
-      reply_markup: menuKeyboard()
+      reply_markup: contactKeyboard()
     });
     return;
   }
@@ -279,8 +298,10 @@ async function handleContact(env, message) {
   });
 }
 
+// TELEGRAM WEBHOOK
 async function handleWebhook(env, update) {
-  // Inline button: verify channel membership
+
+  // VERIFY CHANNEL BUTTON
   if (update.callback_query) {
     const query = update.callback_query;
 
@@ -297,8 +318,9 @@ async function handleWebhook(env, update) {
           await tg(env, "sendMessage", {
             chat_id: query.message.chat.id,
             text: "✅ ቻናሉን በተሳካ ሁኔታ ተቀላቅለዋል! እንኳን ደስ አለዎት።",
-            reply_markup: menuKeyboard()
+            reply_markup: contactKeyboard()
           });
+
         } else {
           await tg(env, "answerCallbackQuery", {
             callback_query_id: query.id,
@@ -306,6 +328,7 @@ async function handleWebhook(env, update) {
             show_alert: true
           });
         }
+
       } catch {
         await tg(env, "answerCallbackQuery", {
           callback_query_id: query.id,
@@ -324,9 +347,11 @@ async function handleWebhook(env, update) {
   const chatId = message.chat.id;
   const user = message.from;
 
-  // Start command and referral payload
-  if (typeof message.text === "string" &&
-      message.text.startsWith("/start")) {
+  // START COMMAND
+  if (
+    typeof message.text === "string" &&
+    message.text.startsWith("/start")
+  ) {
     const player = await getOrCreatePlayer(env, user);
     const payload = message.text.split(/\s+/)[1];
 
@@ -336,15 +361,26 @@ async function handleWebhook(env, update) {
     return;
   }
 
-  // Contact sharing
+  // CONTACT SHARING
   if (message.contact) {
+    let joined = false;
+
+    try {
+      joined = await checkMembership(env, user.id);
+    } catch {}
+
+    if (!joined) {
+      await sendWelcome(env, chatId);
+      return;
+    }
+
     await handleContact(env, message);
     return;
   }
 
   const player = await getOrCreatePlayer(env, user);
 
-  // Require channel membership before using menu features
+  // CHECK CHANNEL MEMBERSHIP
   let joined = false;
 
   try {
@@ -362,6 +398,17 @@ async function handleWebhook(env, update) {
     return;
   }
 
+  // REQUIRE CONTACT BEFORE MENU
+  if (!player.phone_number) {
+    await tg(env, "sendMessage", {
+      chat_id: chatId,
+      text: "📱 Please share your contact to continue.",
+      reply_markup: contactKeyboard()
+    });
+    return;
+  }
+
+  // MAIN MENU ACTIONS
   switch (message.text) {
     case "💰 Balance":
       await showBalance(env, chatId, player);
@@ -384,6 +431,7 @@ async function handleWebhook(env, update) {
   }
 }
 
+// TELEGRAM MINI APP AUTHENTICATION
 async function verifyTelegram(initData, botToken) {
   if (typeof initData !== "string" || !botToken) return null;
 
@@ -449,10 +497,12 @@ async function verifyTelegram(initData, botToken) {
   }
 }
 
+// CLOUDFLARE WORKER
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // TELEGRAM WEBHOOK
     if (
       url.pathname === "/api/telegram/webhook" &&
       request.method === "POST"
@@ -472,6 +522,7 @@ export default {
         const update = await request.json();
         await handleWebhook(env, update);
         return Response.json({ ok: true });
+
       } catch (error) {
         return Response.json(
           { ok: false, error: "Webhook failed" },
@@ -480,7 +531,7 @@ export default {
       }
     }
 
-    // Mini App authentication
+    // MINI APP AUTHENTICATION
     if (
       url.pathname === "/api/auth/telegram" &&
       request.method === "POST"
@@ -525,13 +576,13 @@ export default {
       }
     }
 
-    // Bingo room
+    // BINGO ROOM
     if (url.pathname === "/api/room") {
       const id = env.BINGO_ROOM.idFromName("main");
       return env.BINGO_ROOM.get(id).fetch(request);
     }
 
-    // Website
+    // WEBSITE
     if (!url.pathname.startsWith("/api/")) {
       return env.ASSETS.fetch(request);
     }
@@ -543,6 +594,7 @@ export default {
   }
 };
 
+// DURABLE OBJECT
 export class BingoRoom {
   constructor(ctx, env) {
     this.ctx = ctx;
