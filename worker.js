@@ -564,31 +564,92 @@ export default {
     }
 
     
+    
     // BINGO ROOM
-    if (url.pathname === "/api/room") {
+    if (url.pathname === "/api/room" && request.method === "GET") {
       const id = env.BINGO_ROOM.idFromName("main");
-      const room = env.BINGO_ROOM.get(id);
-
-      return room.fetch(request);
+      return env.BINGO_ROOM.get(id).fetch(request);
     }
 
-    // WEBSITE
-    if (!url.pathname.startsWith("/api/")) {
-      return env.ASSETS.fetch(request);
+    // RESERVE BINGO CARDS
+    if (
+      url.pathname === "/api/room/reserve" &&
+      request.method === "POST"
+    ) {
+      try {
+        const body = await request.json();
+
+        const user = await verifyTelegram(
+          body.initData,
+          env.BOT_TOKEN
+        );
+
+        if (!user || !user.id) {
+          return Response.json(
+            { success: false, error: "Invalid Telegram authentication" },
+            { status: 401 }
+          );
+        }
+
+        const player = await getOrCreatePlayer(env, user);
+
+        if (!player.phone_number) {
+          return Response.json(
+            { success: false, error: "Please share your contact first." },
+            { status: 403 }
+          );
+        }
+
+        const cards = body.cards;
+
+        if (
+          !Array.isArray(cards) ||
+          cards.length < 1 ||
+          cards.length > 4 ||
+          cards.some(n => !Number.isInteger(n) || n < 1 || n > 500) ||
+          new Set(cards).size !== cards.length
+        ) {
+          return Response.json(
+            { success: false, error: "Select 1 to 4 valid cards." },
+            { status: 400 }
+          );
+        }
+
+        const id = env.BINGO_ROOM.idFromName("main");
+
+        const roomRequest = new Request(
+          "https://buna-bingo.internal/reserve",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              playerId: player.id,
+              telegramId: player.telegram_id,
+              cards
+            })
+          }
+        );
+
+        return env.BINGO_ROOM.get(id).fetch(roomRequest);
+
+      } catch (error) {
+        console.error("BINGO RESERVATION ERROR:", error);
+
+        return Response.json(
+          { success: false, error: "Reservation failed." },
+          { status: 500 }
+        );
+      }
     }
 
-    return Response.json(
-      { error: "Not found" },
-      { status: 404 }
-    );
-  }
-};
 
 // DURABLE OBJECT
 export class BingoRoom {
   constructor(ctx, env) {
     this.ctx = ctx;
     this.env = env;
+
+    this.queue = Promise.resolve();
 
     this.ready = this.ctx.blockConcurrencyWhile(async () => {
       let room = await this.ctx.storage.get("room");
@@ -606,12 +667,14 @@ export class BingoRoom {
           countdownSeconds: 60,
           playersCount: 0,
           cardsSold: 0,
+          totalSales: 0,
           prizePool: 0,
-          roundId: null,
+          roundId: crypto.randomUUID(),
           countdownEndsAt: null
         };
 
         await this.ctx.storage.put("room", room);
+        await this.ctx.storage.put("reservations", {});
       }
     });
   }
@@ -619,18 +682,265 @@ export class BingoRoom {
   async fetch(request) {
     await this.ready;
 
-    if (request.method !== "GET") {
+    if (request.method === "GET") {
+      const room = await this.ctx.storage.get("room");
+      const reservations =
+        await this.ctx.storage.get("reservations") || {};
+
+      return Response.json({
+        success: true,
+        room,
+        reservedCards: Object.keys(reservations).map(Number)
+      });
+    }
+
+    if (
+      request.method === "POST" &&
+      new URL(request.url).pathname === "/reserve"
+    ) {
+      const task = this.queue.then(
+        () => this.reserve(request),
+        () => this.reserve(request)
+      );
+
+      this.queue = task.then(
+        () => undefined,
+        () => undefined
+      );
+
+      return task;
+    }
+
+    return Response.json(
+      { success: false, error: "Method not allowed" },
+      { status: 405 }
+    );
+  }
+
+  async reserve(request) {
+    const body = await request.json();
+
+    const { playerId, telegramId, cards } = body;
+
+    if (!playerId || !telegramId || !Array.isArray(cards)) {
       return Response.json(
-        { success: false, error: "Method not allowed" },
-        { status: 405 }
+        { success: false, error: "Invalid reservation data." },
+        { status: 400 }
       );
     }
 
     const room = await this.ctx.storage.get("room");
+    const reservations =
+      await this.ctx.storage.get("reservations") || {};
+
+    if (
+      room.status !== "waiting" &&
+      room.status !== "countdown"
+    ) {
+      return Response.json(
+        { success: false, error: "This round is closed." },
+        { status: 409 }
+      );
+    }
+
+    if (
+      cards.length < 1 ||
+      cards.length > 4 ||
+      cards.some(n => !Number.isInteger(n) || n < 1 || n > 500) ||
+      new Set(cards).size !== cards.length
+    ) {
+      return Response.json(
+        { success: false, error: "Invalid card selection." },
+        { status: 400 }
+      );
+    }
+
+    const myCards = Object.values(reservations)
+      .filter(r => r.playerId === playerId);
+
+    if (myCards.length + cards.length > 4) {
+      return Response.json(
+        { success: false, error: "Maximum 4 cards per player." },
+        { status: 400 }
+      );
+    }
+
+    for (const card of cards) {
+      if (reservations[card]) {
+        return Response.json(
+          {
+            success: false,
+            error: `Card ${card} is already reserved.`
+          },
+          { status: 409 }
+        );
+      }
+    }
+
+    const existingPlayers = new Set(
+      Object.values(reservations).map(r => r.playerId)
+    );
+
+    if (
+      !existingPlayers.has(playerId) &&
+      existingPlayers.size >= room.maxPlayers
+    ) {
+      return Response.json(
+        { success: false, error: "Room is full." },
+        { status: 409 }
+      );
+    }
+
+    const total = cards.length * room.cardPrice;
+
+    const player = await this.env.DB.prepare(`
+      SELECT id, main_balance, bonus_balance
+      FROM players
+      WHERE id = ? AND telegram_id = ?
+    `).bind(playerId, String(telegramId)).first();
+
+    if (!player) {
+      return Response.json(
+        { success: false, error: "Player account not found." },
+        { status: 404 }
+      );
+    }
+
+    const bonus = Math.max(0, Number(player.bonus_balance || 0));
+    const main = Math.max(0, Number(player.main_balance || 0));
+
+    if (bonus + main < total) {
+      return Response.json(
+        { success: false, error: "Insufficient balance." },
+        { status: 400 }
+      );
+    }
+
+    // BONUS FIRST, THEN MAIN BALANCE
+    const bonusUsed = Math.min(bonus, total);
+    const mainUsed = total - bonusUsed;
+
+    const payment = await this.env.DB.prepare(`
+      UPDATE players
+      SET
+        bonus_balance = COALESCE(bonus_balance, 0) - ?,
+        main_balance = COALESCE(main_balance, 0) - ?,
+        cards_count = COALESCE(cards_count, 0) + ?
+      WHERE id = ?
+        AND telegram_id = ?
+        AND COALESCE(bonus_balance, 0) +
+            COALESCE(main_balance, 0) >= ?
+    `).bind(
+      bonusUsed,
+      mainUsed,
+      cards.length,
+      playerId,
+      String(telegramId),
+      total
+    ).run();
+
+    if (!payment.meta || payment.meta.changes !== 1) {
+      return Response.json(
+        { success: false, error: "Balance changed. Please try again." },
+        { status: 409 }
+      );
+    }
+
+    const updatedReservations = { ...reservations };
+
+    for (const card of cards) {
+      updatedReservations[card] = {
+        playerId,
+        telegramId: String(telegramId),
+        reservedAt: Date.now()
+      };
+    }
+
+    const updatedRoom = { ...room };
+
+    updatedRoom.cardsSold += cards.length;
+    updatedRoom.totalSales += total;
+    updatedRoom.prizePool =
+      updatedRoom.totalSales *
+      updatedRoom.prizePercentage / 100;
+
+    const players = new Set(
+      Object.values(updatedReservations).map(r => r.playerId)
+    );
+
+    updatedRoom.playersCount = players.size;
+
+    if (
+      updatedRoom.playersCount >= updatedRoom.minPlayers &&
+      updatedRoom.status === "waiting"
+    ) {
+      updatedRoom.status = "countdown";
+      updatedRoom.countdownEndsAt =
+        Date.now() + updatedRoom.countdownSeconds * 1000;
+
+      await this.ctx.storage.setAlarm(
+        updatedRoom.countdownEndsAt
+      );
+    }
+
+    try {
+      await this.ctx.storage.put({
+        reservations: updatedReservations,
+        room: updatedRoom
+      });
+    } catch (error) {
+      // REFUND IF ROOM STORAGE FAILS
+      await this.env.DB.prepare(`
+        UPDATE players
+        SET
+          bonus_balance = COALESCE(bonus_balance, 0) + ?,
+          main_balance = COALESCE(main_balance, 0) + ?,
+          cards_count = MAX(0, COALESCE(cards_count, 0) - ?)
+        WHERE id = ?
+      `).bind(
+        bonusUsed,
+        mainUsed,
+        cards.length,
+        playerId
+      ).run();
+
+      throw error;
+    }
+
+    const updatedPlayer = await this.env.DB.prepare(`
+      SELECT main_balance, bonus_balance
+      FROM players
+      WHERE id = ?
+    `).bind(playerId).first();
 
     return Response.json({
       success: true,
-      room
+      message: "Cards reserved successfully!",
+      reservedCards: cards,
+      charged: total,
+      bonusUsed,
+      mainUsed,
+      mainBalance: Number(updatedPlayer.main_balance || 0),
+      bonusBalance: Number(updatedPlayer.bonus_balance || 0),
+      room: updatedRoom
     });
+  }
+
+  async alarm() {
+    await this.ready;
+
+    const room = await this.ctx.storage.get("room");
+
+    if (
+      room &&
+      room.status === "countdown" &&
+      room.countdownEndsAt &&
+      Date.now() >= room.countdownEndsAt
+    ) {
+      room.status = "ready";
+      room.countdownEndsAt = null;
+
+      await this.ctx.storage.put("room", room);
+    }
   }
 }
