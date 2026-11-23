@@ -586,16 +586,48 @@ export class BingoRoom {
   constructor(ctx, env) {
     this.ctx = ctx;
     this.env = env;
+
+    this.ready = this.ctx.blockConcurrencyWhile(async () => {
+      let room = await this.ctx.storage.get("room");
+
+      if (!room) {
+        room = {
+          name: "BUNA BINGO",
+          status: "waiting",
+          maxPlayers: 500,
+          minPlayers: 2,
+          maxCardsPerPlayer: 4,
+          cardPrice: 10,
+          prizePercentage: 60,
+          platformPercentage: 40,
+          countdownSeconds: 60,
+          playersCount: 0,
+          cardsSold: 0,
+          prizePool: 0,
+          roundId: null,
+          countdownEndsAt: null
+        };
+
+        await this.ctx.storage.put("room", room);
+      }
+    });
   }
 
-  async fetch() {
+  async fetch(request) {
+    await this.ready;
+
+    if (request.method !== "GET") {
+      return Response.json(
+        { success: false, error: "Method not allowed" },
+        { status: 405 }
+      );
+    }
+
+    const room = await this.ctx.storage.get("room");
+
     return Response.json({
       success: true,
-      room: "BUNA BINGO",
-      maxPlayers: 500,
-      maxCardsPerPlayer: 4,
-      cardPrice: 10,
-      prizePercentage: 60
+      room
     });
   }
 }
