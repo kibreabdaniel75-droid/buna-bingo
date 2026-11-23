@@ -563,10 +563,13 @@ export default {
       }
     }
 
+    
     // BINGO ROOM
     if (url.pathname === "/api/room") {
       const id = env.BINGO_ROOM.idFromName("main");
-      return env.BINGO_ROOM.get(id).fetch(request);
+      const room = env.BINGO_ROOM.get(id);
+
+      return room.fetch(request);
     }
 
     // WEBSITE
