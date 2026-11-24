@@ -527,6 +527,7 @@ export default {
     // PUBLIC ROUND STATUS
     if (url.pathname === "/api/room" && request.method === "GET") {
       const id = env.BINGO_ROOM.idFromName("main");
+
       return env.BINGO_ROOM.get(id).fetch(
         new Request("https://buna-bingo.internal/status")
       );
@@ -737,150 +738,8 @@ export class BingoRoom {
       let room = await this.ctx.storage.get("room");
 
       if (!room) {
-        room = {
-          name: "BUNA BINGO",
-          status: "waiting",
-          maxPlayers: MAX_CARD_SLOTS,
-          minPlayers: 2,
-          maxCardsPerPlayer: MAX_CARDS,
-          cardPrice: CARD_PRICE,
-          prizePercentage: 60,
-          platformPercentage: 40,
-          countdownSeconds: COUNTDOWN_SECONDS,
-          playersCount: 0,
-          cardsSold: 0,
-          totalSales: 0,
-          prizePool: 0,
-          roundId: crypto.randomUUID(),
-          countdownEndsAt: null,
-          calledNumbers: [],
-          currentNumber: null,
-          winner: null,
-          startedAt: null,
-          finishedAt: null
-        };
-
-        await this.ctx.storage.put("room", room);
-        await this.ctx.storage.put("reservations", {});
-        await this.ctx.storage.put("numberSequence", []);
-      }
-    });
-  }
-
-  async fetch(request) {
-    await this.ready;
-
-    const path = new URL(request.url).pathname;
-
-    if (request.method === "GET" && path === "/status") {
-      const room = await this.ctx.storage.get("room");
-      const reservations = await this.ctx.storage.get("reservations") || {};
-
-      return json({
-        success: true,
-        room,
-        reservedCards: Object.keys(reservations).map(Number)
-      });
-    }
-
-    if (request.method === "POST" && path === "/player-state") {
-      const body = await request.json();
-      return this.playerState(body);
-    }
-
-    if (request.method === "POST" && path === "/reserve") {
-      return this.serial(() => this.reserve(request));
-    }
-
-    if (request.method === "POST" && path === "/claim") {
-      return this.serial(() => this.claim(request));
-    }
-
-    return json({ success: false, error: "Not found" }, 404);
-  }
-
-  serial(task) {
-    const result = this.queue.then(task, task);
-    this.queue = result.then(() => undefined, () => undefined);
-    return result;
-  }
-
-  async playerState(body) {
-    const { playerId, telegramId } = body;
-
-    if (!playerId || !telegramId) {
-      return json({ success: false, error: "Invalid player." }, 400);
-    }
-
-    const room = await this.ctx.storage.get("room");
-    const reservations = await this.ctx.storage.get("reservations") || {};
-
-    const myCards = Object.entries(reservations)
-      .filter(([, item]) =>
-        item.playerId === playerId &&
-        item.telegramId === String(telegramId)
-      )
-      .map(([slot, item]) => ({
-        slot: Number(slot),
-        card: item.card
-      }));
-
-    return json({
-      success: true,
-      privateRoomId: playerId,
-      room: {
-        name: room.name,
-        roundId: room.roundId,
-        status: room.status,
-        countdownEndsAt: room.countdownEndsAt,
-        calledNumbers: room.calledNumbers,
-        currentNumber: room.currentNumber,
-        cardsSold: room.cardsSold,
-        playersCount: room.playersCount,
-        prizePool: room.prizePool,
-        winner: room.winner
-      },
-      myCards
-    });
-  }
-
-  async reserve(request) {
-    const body = await request.json();
-    const { playerId, telegramId, cards } = body;
-
-    if (!playerId || !telegramId || !Array.isArray(cards)) {
-      return json({ success: false, error: "Invalid reservation data." }, 400);
-    }
-
-    const room = await this.ctx.storage.get("room");
-    const reservations = await this.ctx.storage.get("reservations") || {};
-
-    if (room.status !== "waiting" && room.status !== "countdown") {
-      return json({ success: false, error: "This round is closed." }, 409);
-    }
-
-    if (
-      cards.length < 1 ||
-      cards.length > MAX_CARDS ||
-      cards.some(n => !Number.isInteger(n) || n < 1 || n > MAX_CARD_SLOTS) ||
-      new Set(cards).size !== cards.length
-    ) {
-      return json({ success: false, error: "Invalid card selection." }, 400);
-    }
-
-    
- // DURABLE OBJECT: ONE SHARED ROUND, PRIVATE PLAYER CARDS
-export class BingoRoom {
-  constructor(ctx, env) {
-    this.ctx = ctx;
-    this.env = env;
-    this.queue = Promise.resolve();
-
-    this.ready = this.ctx.blockConcurrencyWhile(async () => {
-      let room = await this.ctx.storage.get("room");
-
-      if (!room) {
         room = this.newRoom();
+
         await this.ctx.storage.put("room", room);
         await this.ctx.storage.put("reservations", {});
         await this.ctx.storage.put("numberSequence", []);
@@ -1274,11 +1133,9 @@ export class BingoRoom {
 
     await this.ctx.storage.put("room", room);
 
-    // Stop the number calling and schedule the next reset.
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.setAlarm(room.winnerRevealEndsAt);
 
-    // Announce the winner to every player in this round.
     await this.announceWinner(room, reservations);
 
     return json({
@@ -1360,7 +1217,7 @@ export class BingoRoom {
 
     if (!room) return;
 
-    // Keep the winner visible for 10 seconds, then reset.
+    // Winner reveal lasts 10 seconds.
     if (room.status === "finished") {
       if (
         room.winnerRevealEndsAt &&
@@ -1371,6 +1228,7 @@ export class BingoRoom {
       return;
     }
 
+    // Countdown ends: start the game.
     if (
       room.status === "countdown" &&
       room.countdownEndsAt &&
@@ -1445,4 +1303,3 @@ export class BingoRoom {
     }
   }
 }
-    
