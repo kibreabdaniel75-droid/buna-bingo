@@ -642,8 +642,8 @@ export default {
       }
     }
 
-      }
-    }
+  
+    
 
     // WEBSITE
     if (!url.pathname.startsWith("/api/")) {
@@ -656,10 +656,6 @@ export default {
     );
   }
 };
-
-// DURABLE OBJECT
-export class BingoRoom {
-
 
 // DURABLE OBJECT
 export class BingoRoom {
