@@ -40,7 +40,7 @@ async function removeKeyboard(env, chatId) {
 function menuKeyboard() {
   return {
     keyboard: [
-      [{ text: "🎮 Play BUNA BINGO", web_app: { url: GAME_URL } }],
+      [{ text: "🎮 Play BUNA BINGO" }],
       [
         { text: "💰 Balance" },
         { text: "🎮 Game Rules" }
@@ -67,8 +67,6 @@ function contactKeyboard() {
 
 // WELCOME MESSAGE
 async function sendWelcome(env, chatId) {
-  
-
   await tg(env, "sendMessage", {
     chat_id: chatId,
     text:
@@ -394,6 +392,21 @@ async function handleWebhook(env, update) {
 
   // MENU
   switch (message.text) {
+    case "🎮 Play BUNA BINGO":
+      await tg(env, "sendMessage", {
+        chat_id: chatId,
+        text: "🎮 Ready to play Buna Bingo?",
+        reply_markup: {
+          inline_keyboard: [[
+            {
+              text: "🎮 PLAY BUNA BINGO",
+              web_app: { url: GAME_URL }
+            }
+          ]]
+        }
+      });
+      break;
+
     case "💰 Balance":
       await showBalance(env, chatId, player);
       break;
@@ -563,8 +576,6 @@ export default {
       }
     }
 
-    
-    
     // BINGO ROOM
     if (url.pathname === "/api/room" && request.method === "GET") {
       const id = env.BINGO_ROOM.idFromName("main");
@@ -641,9 +652,6 @@ export default {
         );
       }
     }
-
-  
-    
 
     // WEBSITE
     if (!url.pathname.startsWith("/api/")) {
@@ -898,12 +906,11 @@ export class BingoRoom {
     }
 
     try {
-  await this.ctx.storage.transaction(async (txn) => {
-    await txn.put("reservations", updatedReservations);
-    await txn.put("room", updatedRoom);
-  });
-    }
-    catch (error) {
+      await this.ctx.storage.transaction(async (txn) => {
+        await txn.put("reservations", updatedReservations);
+        await txn.put("room", updatedRoom);
+      });
+    } catch (error) {
       // REFUND IF ROOM STORAGE FAILS
       await this.env.DB.prepare(`
         UPDATE players
