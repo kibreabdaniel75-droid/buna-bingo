@@ -5,7 +5,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Buna Bingo</title>
-
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
@@ -16,7 +15,6 @@
     --gold-dark:#DAA520;
     --text-light:#fff;
     --text-muted:#a0a0a0;
-    --purple-btn:#6c5ce7;
     --green:#27ae60;
     --red:#e74c3c;
 }
@@ -38,13 +36,12 @@ body {
 .app-container {
     width:100%;
     max-width:480px;
-    height:100vh;
-    height:100dvh;
+    min-height:100vh;
+    min-height:100dvh;
     background:var(--bg-dark);
     display:flex;
     flex-direction:column;
     position:relative;
-    overflow:hidden;
 }
 
 .header {
@@ -79,6 +76,7 @@ body {
     font-size:12px;
     color:var(--text-muted);
     border-bottom:1px solid #333;
+    gap:5px;
 }
 
 .highlight {
@@ -86,35 +84,26 @@ body {
     font-weight:bold;
 }
 
-.tabs {
-    display:flex;
+.section {
+    margin:12px 15px;
     background:var(--bg-panel);
-    margin:10px 15px;
-    border-radius:8px;
-    overflow:hidden;
     border:1px solid #333;
+    border-radius:10px;
+    padding:12px;
 }
 
-.tab {
-    flex:1;
-    text-align:center;
-    padding:10px 5px;
-    font-size:13px;
-    color:var(--text-muted);
-}
-
-.tab.active {
-    background:var(--gold);
-    color:#000;
+.section-title {
+    color:var(--gold);
+    font-size:15px;
     font-weight:bold;
+    margin-bottom:10px;
 }
 
 .summary-cards {
     display:flex;
-    justify-content:space-between;
     padding:0 15px;
     gap:8px;
-    margin-bottom:10px;
+    margin-top:12px;
 }
 
 .summary-card {
@@ -124,59 +113,124 @@ body {
     border:1px solid #333;
     border-radius:10px;
     padding:9px 6px;
-    display:flex;
-    align-items:center;
-    gap:6px;
-}
-
-.summary-icon {
-    width:27px;
-    height:27px;
-    flex-shrink:0;
-    border-radius:5px;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-size:14px;
-}
-
-.icon-balance {background:#333;color:var(--gold);}
-.icon-bonus {background:#4a3b00;color:var(--gold);}
-.icon-time {background:#4a1a00;color:#ff6b6b;}
-
-.summary-text {
-    display:flex;
-    flex-direction:column;
-    min-width:0;
 }
 
 .summary-title {
+    display:block;
     font-size:9px;
     color:var(--text-muted);
     text-transform:uppercase;
 }
 
 .summary-value {
+    display:block;
     font-size:12px;
     font-weight:bold;
     color:var(--gold);
+    margin-top:3px;
     overflow:hidden;
     text-overflow:ellipsis;
+}
+
+.current-call {
+    text-align:center;
+    padding:15px;
+    border:1px solid var(--gold-dark);
+    border-radius:10px;
+    background:#181818;
+}
+
+.current-label {
+    color:var(--text-muted);
+    font-size:12px;
+}
+
+.current-number {
+    font-size:46px;
+    font-weight:bold;
+    color:var(--gold);
+    margin-top:4px;
+}
+
+.game-status {
+    font-size:12px;
+    color:var(--text-muted);
+    margin-top:5px;
+}
+
+.number-board {
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:5px;
+}
+
+.number-column {
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+}
+
+.number-letter {
+    background:var(--gold);
+    color:#000;
+    font-weight:bold;
+    text-align:center;
+    padding:7px 2px;
+    border-radius:5px;
+}
+
+.called-number {
+    background:#292929;
+    border:1px solid #444;
+    border-radius:4px;
+    text-align:center;
+    padding:6px 1px;
+    font-size:11px;
+    color:#aaa;
+}
+
+.called-number.active {
+    background:var(--gold);
+    color:#000;
+    border-color:var(--gold);
+    font-weight:bold;
+}
+
+.latest-calls {
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px;
+    margin-top:10px;
+}
+
+.latest-ball {
+    background:#333;
+    color:var(--gold);
+    border:1px solid var(--gold-dark);
+    border-radius:50%;
+    width:34px;
+    height:34px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:10px;
+    font-weight:bold;
 }
 
 .grid-header {
     display:flex;
     justify-content:space-between;
-    padding:0 15px 10px;
+    padding:12px 15px 10px;
     font-size:13px;
     color:var(--gold);
     font-weight:bold;
 }
 
 .grid-container {
-    flex:1;
+    height:230px;
     overflow-y:auto;
-    padding:0 15px 15px;
+    margin:0 15px;
+    padding:0 0 12px;
     display:grid;
     grid-template-columns:repeat(10,1fr);
     gap:4px;
@@ -206,13 +260,11 @@ body {
     background:var(--gold);
     color:#000;
     font-weight:bold;
-    border-color:var(--gold);
 }
 
 .card-number.reserved {
     background:#383838;
     color:#777;
-    border-color:#333;
     cursor:not-allowed;
     opacity:.65;
 }
@@ -220,7 +272,6 @@ body {
 .card-number.owned {
     background:var(--green);
     color:white;
-    border-color:var(--green);
     cursor:not-allowed;
 }
 
@@ -230,7 +281,6 @@ body {
     padding:12px 15px;
     border-radius:20px 20px 0 0;
     box-shadow:0 -5px 15px rgba(0,0,0,.5);
-    z-index:10;
 }
 
 .reserve-section {
@@ -240,17 +290,38 @@ body {
     gap:15px;
 }
 
-.btn-reserve {
-    background:var(--purple-btn);
-    color:white;
+.btn {
     border:none;
-    padding:11px 25px;
+    padding:11px 20px;
     border-radius:20px;
     font-weight:bold;
     cursor:pointer;
 }
 
-.btn-reserve:disabled {
+.btn-reserve {
+    background:var(--gold);
+    color:#000;
+}
+
+/* BINGO BUTTON IS ALWAYS VISIBLE */
+.btn-bingo {
+    display:block;
+    width:100%;
+    background:var(--green);
+    color:white;
+    font-size:20px;
+    padding:16px;
+    border-radius:12px;
+    margin-top:12px;
+    animation:pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+    from {transform:scale(1);}
+    to {transform:scale(1.025);}
+}
+
+.btn:disabled {
     opacity:.5;
     cursor:not-allowed;
 }
@@ -264,23 +335,77 @@ body {
     font-size:15px;
     font-weight:bold;
     color:var(--gold);
-    margin-bottom:9px;
+    margin:12px 0 9px;
+}
+
+.my-bingo-card {
+    background:#181818;
+    border:1px solid #555;
+    border-radius:10px;
+    padding:9px;
+    margin-bottom:12px;
+}
+
+.my-bingo-card h4 {
+    color:var(--gold);
+    font-size:12px;
+    margin-bottom:8px;
+}
+
+.bingo-grid {
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:4px;
+}
+
+.bingo-cell {
+    background:#292929;
+    border:1px solid #444;
+    border-radius:5px;
+    min-height:42px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+    font-weight:bold;
+}
+
+.bingo-cell.heading {
+    background:var(--gold);
+    color:#000;
+    min-height:27px;
+}
+
+.bingo-cell.free {
+    color:var(--gold);
+    border-color:var(--gold-dark);
+}
+
+.bingo-cell.marked {
+    background:var(--green);
+    color:white;
+    border-color:var(--green);
+}
+
+.empty-message {
+    text-align:center;
+    color:var(--text-muted);
+    font-size:12px;
+    padding:15px 5px;
 }
 
 .btn-refresh {
     width:100%;
     background:var(--gold);
     color:#000;
-    border:none;
     padding:13px;
     border-radius:10px;
     font-size:15px;
-    font-weight:bold;
-    cursor:pointer;
+    margin-top:12px;
 }
 
 .toast {
-    position:absolute;
+    position:fixed;
     top:20px;
     left:50%;
     transform:translateX(-50%);
@@ -300,6 +425,24 @@ body {
 .toast.show {display:block;}
 .toast.success {background:var(--green);color:white;}
 .toast.error {background:var(--red);color:white;}
+
+.winner-message {
+    display:none;
+    text-align:center;
+    padding:14px;
+    border:1px solid var(--gold);
+    border-radius:10px;
+    color:var(--gold);
+    font-weight:bold;
+    margin-top:10px;
+}
+
+.winner-message.show {display:block;}
+
+@media(max-width:350px) {
+    .bingo-cell {min-height:34px;font-size:11px;}
+    .called-number {font-size:9px;padding:5px 0;}
+}
 </style>
 </head>
 
@@ -312,46 +455,49 @@ body {
     </div>
 
     <div class="info-bar">
-        <div>Room <span class="highlight" id="room-status">Loading</span></div>
+        <div>Round <span class="highlight" id="round-id">—</span></div>
         <div>Pool <span class="highlight" id="prize-pool">—</span></div>
         <div>Stake <span class="highlight">10 ETB</span></div>
     </div>
 
-    <div class="tabs">
-        <div class="tab active">Cards</div>
-        <div class="tab">History</div>
-        <div class="tab">How to play</div>
-    </div>
-
     <div class="summary-cards">
         <div class="summary-card">
-            <div class="summary-icon icon-balance">💳</div>
-            <div class="summary-text">
-                <span class="summary-title">Balance</span>
-                <span class="summary-value" id="main-balance">—</span>
-            </div>
+            <span class="summary-title">Main Balance</span>
+            <span class="summary-value" id="main-balance">—</span>
         </div>
-
         <div class="summary-card">
-            <div class="summary-icon icon-bonus">🎁</div>
-            <div class="summary-text">
-                <span class="summary-title">Bonus</span>
-                <span class="summary-value" id="bonus-balance">—</span>
-            </div>
+            <span class="summary-title">Bonus Balance</span>
+            <span class="summary-value" id="bonus-balance">—</span>
         </div>
-
         <div class="summary-card">
-            <div class="summary-icon icon-time">⏳</div>
-            <div class="summary-text">
-                <span class="summary-title">Time Left</span>
-                <span class="summary-value" id="time-left">—</span>
-            </div>
+            <span class="summary-title">Time Left</span>
+            <span class="summary-value" id="time-left">—</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="current-call">
+            <div class="current-label">CURRENT NUMBER</div>
+            <div class="current-number" id="current-number">--</div>
+            <div class="game-status" id="game-status">Waiting for players</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">🎱 B-I-N-G-O NUMBER BOARD</div>
+        <div class="number-board" id="number-board"></div>
+
+        <div class="section-title" style="margin-top:14px">
+            Recent Calls
+        </div>
+        <div class="latest-calls" id="latest-calls">
+            <span class="empty-message">No numbers called yet.</span>
         </div>
     </div>
 
     <div class="grid-header">
-        <span>⊞ 500 cards · 25x20</span>
-        <span style="font-weight:normal;color:var(--text-muted);font-size:11px">
+        <span>⊞ 500 Available Cards</span>
+        <span style="color:var(--text-muted);font-size:11px;font-weight:normal">
             Tap to select
         </span>
     </div>
@@ -360,21 +506,30 @@ body {
 
     <div class="bottom-area">
         <div class="reserve-section">
-            <button class="btn-reserve" id="reserve-button">
+            <button class="btn btn-reserve" id="reserve-button">
                 🔒 Reserve
             </button>
-
             <span class="selected-text">
                 Selected: <span id="selected-count">0</span>
             </span>
         </div>
 
         <div class="my-cards-header">
-            ⊞ My cards (<span id="my-cards-counter">0</span>/4)
+            ⊞ My Cards (<span id="my-cards-counter">0</span>/4)
         </div>
 
-        <button class="btn-refresh" id="refresh-button">
-            🔄 Refresh
+        <div id="my-bingo-cards">
+            <div class="empty-message">You haven't reserved any cards yet.</div>
+        </div>
+
+        <button class="btn btn-bingo" id="bingo-button">
+            🎉 BINGO!
+        </button>
+
+        <div class="winner-message" id="winner-message"></div>
+
+        <button class="btn btn-refresh" id="refresh-button">
+            🔄 Refresh Game
         </button>
     </div>
 
@@ -382,32 +537,33 @@ body {
 </div>
 
 <script>
-const playerName = document.getElementById("player-name");
-const mainBalance = document.getElementById("main-balance");
-const bonusBalance = document.getElementById("bonus-balance");
-const prizePool = document.getElementById("prize-pool");
-const roomStatus = document.getElementById("room-status");
-const timeLeft = document.getElementById("time-left");
-const grid = document.getElementById("cards-grid");
-const selectedDisplay = document.getElementById("selected-count");
-const myCardsCounter = document.getElementById("my-cards-counter");
-const reserveButton = document.getElementById("reserve-button");
+const $ = id => document.getElementById(id);
+
+const playerName = $("player-name");
+const mainBalance = $("main-balance");
+const bonusBalance = $("bonus-balance");
+const prizePool = $("prize-pool");
+const timeLeft = $("time-left");
+const grid = $("cards-grid");
+const selectedDisplay = $("selected-count");
+const myCardsCounter = $("my-cards-counter");
+const reserveButton = $("reserve-button");
+const bingoButton = $("bingo-button");
 
 const MAX_CARDS = 4;
 
 let tg = null;
-let selectedCards = new Set();
-let myCards = new Set();
-let reservedCards = new Set();
 let player = null;
 let roomData = null;
+let selectedCards = new Set();
+let myCards = [];
+let reservedCards = new Set();
 let busy = false;
-let countdownTimer = null;
 let refreshTimer = null;
+let countdownTimer = null;
 
 function showToast(message, type = "error") {
-    const toast = document.getElementById("toast");
-
+    const toast = $("toast");
     toast.textContent = message;
     toast.className = "toast show " + type;
 
@@ -428,25 +584,192 @@ function formatMoney(value) {
     return Number(value || 0).toFixed(2) + " ETB";
 }
 
-function updateSelectedDisplay() {
-    selectedDisplay.textContent = selectedCards.size;
-    myCardsCounter.textContent = myCards.size;
+function getLetter(number) {
+    if (number <= 15) return "B";
+    if (number <= 30) return "I";
+    if (number <= 45) return "N";
+    if (number <= 60) return "G";
+    return "O";
 }
 
-function renderCard(cardNumber) {
-    const card = document.getElementById("card-" + cardNumber);
+function updateSelectedDisplay() {
+    selectedDisplay.textContent = selectedCards.size;
+    myCardsCounter.textContent = myCards.length;
+}
+
+function updateBalances(data) {
+    if (!data) return;
+
+    mainBalance.textContent = formatMoney(data.main_balance);
+    bonusBalance.textContent = formatMoney(data.bonus_balance);
+}
+
+function createNumberBoard() {
+    const board = $("number-board");
+    board.innerHTML = "";
+
+    const letters = ["B", "I", "N", "G", "O"];
+
+    letters.forEach((letter, column) => {
+        const col = document.createElement("div");
+        col.className = "number-column";
+
+        const heading = document.createElement("div");
+        heading.className = "number-letter";
+        heading.textContent = letter;
+        col.appendChild(heading);
+
+        for (let row = 0; row < 15; row++) {
+            const number = column * 15 + row + 1;
+
+            const cell = document.createElement("div");
+            cell.className = "called-number";
+            cell.id = "number-" + number;
+            cell.textContent = number;
+
+            col.appendChild(cell);
+        }
+
+        board.appendChild(col);
+    });
+}
+
+function renderNumberBoard() {
+    const called = roomData?.calledNumbers || [];
+
+    document.querySelectorAll(".called-number").forEach(cell => {
+        const number = Number(cell.id.replace("number-", ""));
+        cell.classList.toggle("active", called.includes(number));
+    });
+
+    const recent = $("latest-calls");
+    recent.innerHTML = "";
+
+    const latest = [...called].reverse().slice(0, 10);
+
+    if (!latest.length) {
+        recent.innerHTML =
+            '<span class="empty-message">No numbers called yet.</span>';
+    } else {
+        latest.forEach(number => {
+            const ball = document.createElement("div");
+            ball.className = "latest-ball";
+            ball.textContent = getLetter(number) + "-" + number;
+            recent.appendChild(ball);
+        });
+    }
+
+    const current = roomData?.currentNumber;
+
+    $("current-number").textContent =
+        current ? getLetter(current) + "-" + current : "--";
+}
+
+function hasBingo(card, calledNumbers) {
+    if (!Array.isArray(card) || card.length !== 5) return false;
+
+    const called = new Set(calledNumbers);
+
+    const marked = (row, col) => {
+        const value = card[row][col];
+        return value === 0 || called.has(value);
+    };
+
+    for (let row = 0; row < 5; row++) {
+        if ([0,1,2,3,4].every(col => marked(row, col))) {
+            return true;
+        }
+    }
+
+    for (let col = 0; col < 5; col++) {
+        if ([0,1,2,3,4].every(row => marked(row, col))) {
+            return true;
+        }
+    }
+
+    if ([0,1,2,3,4].every(i => marked(i, i))) return true;
+
+    if ([0,1,2,3,4].every(i => marked(i, 4-i))) return true;
+
+    return false;
+}
+
+function renderMyCards() {
+    const container = $("my-bingo-cards");
+    container.innerHTML = "";
+
+    if (!myCards.length) {
+        container.innerHTML =
+            '<div class="empty-message">You haven\'t reserved any cards yet.</div>';
+        updateSelectedDisplay();
+        return;
+    }
+
+    const called = roomData?.calledNumbers || [];
+
+    myCards.forEach(item => {
+        const card = item.card;
+
+        if (!Array.isArray(card)) return;
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "my-bingo-card";
+
+        const heading = document.createElement("h4");
+        heading.textContent = "CARD #" + item.slot;
+        wrapper.appendChild(heading);
+
+        const cardGrid = document.createElement("div");
+        cardGrid.className = "bingo-grid";
+
+        ["B","I","N","G","O"].forEach(letter => {
+            const cell = document.createElement("div");
+            cell.className = "bingo-cell heading";
+            cell.textContent = letter;
+            cardGrid.appendChild(cell);
+        });
+
+        card.forEach(row => {
+            row.forEach(number => {
+                const cell = document.createElement("div");
+                cell.className = "bingo-cell";
+
+                if (number === 0) {
+                    cell.textContent = "FREE";
+                    cell.classList.add("free", "marked");
+                } else {
+                    cell.textContent = number;
+
+                    if (called.includes(number)) {
+                        cell.classList.add("marked");
+                    }
+                }
+
+                cardGrid.appendChild(cell);
+            });
+        });
+
+        wrapper.appendChild(cardGrid);
+        container.appendChild(wrapper);
+    });
+
+    updateSelectedDisplay();
+}
+
+function renderCard(number) {
+    const card = $("card-" + number);
     if (!card) return;
 
     card.className = "card-number";
     card.disabled = false;
 
-    if (myCards.has(cardNumber)) {
+    if (myCards.some(item => Number(item.slot) === number)) {
         card.classList.add("owned");
         card.disabled = true;
-    } else if (reservedCards.has(cardNumber)) {
+    } else if (reservedCards.has(number)) {
         card.classList.add("reserved");
         card.disabled = true;
-    } else if (selectedCards.has(cardNumber)) {
+    } else if (selectedCards.has(number)) {
         card.classList.add("selected");
     }
 }
@@ -463,15 +786,18 @@ function createCards() {
         card.textContent = i;
 
         card.addEventListener("click", () => {
-            if (busy || reservedCards.has(i) || myCards.has(i)) return;
+            if (busy || reservedCards.has(i)) return;
+
+            if (myCards.some(item => Number(item.slot) === i)) return;
 
             if (selectedCards.has(i)) {
                 selectedCards.delete(i);
             } else {
-                if (selectedCards.size + myCards.size >= MAX_CARDS) {
-                    showToast("You can select a maximum of 4 cards.");
+                if (selectedCards.size + myCards.length >= MAX_CARDS) {
+                    showToast("Maximum 4 cards per player.");
                     return;
                 }
+
                 selectedCards.add(i);
             }
 
@@ -485,14 +811,7 @@ function createCards() {
     grid.appendChild(fragment);
 }
 
-function updateBalances(data) {
-    if (!data) return;
-    mainBalance.textContent = formatMoney(data.main_balance);
-    bonusBalance.textContent = formatMoney(data.bonus_balance);
-}
-
 async function authenticate() {
-    // Wait briefly for the external Telegram SDK to initialize.
     for (let i = 0; i < 20; i++) {
         if (window.Telegram?.WebApp) break;
         await new Promise(resolve => setTimeout(resolve, 250));
@@ -502,8 +821,7 @@ async function authenticate() {
 
     if (!tg) {
         playerName.textContent = "SDK not loaded";
-        showToast("Telegram SDK did not load. Please reopen the game.");
-        console.error("SDK missing. Check the Telegram Web App script.");
+        showToast("Open the game inside Telegram.");
         return false;
     }
 
@@ -512,20 +830,15 @@ async function authenticate() {
 
     if (!tg.initData) {
         playerName.textContent = "Open in Telegram";
-        showToast("No Telegram login data. Open this game using the bot.");
-        console.error("Telegram SDK loaded, but initData is empty.");
+        showToast("Open the game using the Telegram bot.");
         return false;
     }
 
     try {
         const response = await fetch("/api/auth/telegram", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                initData: tg.initData
-            })
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({initData:tg.initData})
         });
 
         const data = await response.json();
@@ -536,18 +849,15 @@ async function authenticate() {
 
         player = data.player;
 
-        const fullName = [
+        const name = [
             player.first_name,
             player.last_name
         ].filter(Boolean).join(" ");
 
-        playerName.textContent =
-            fullName ||
-            (tg.initDataUnsafe?.user?.username
-                ? "@" + tg.initDataUnsafe.user.username
-                : "Player");
+        playerName.textContent = name || "Player";
 
         updateBalances(player);
+
         return true;
 
     } catch (error) {
@@ -561,14 +871,13 @@ async function authenticate() {
 async function loadRoom() {
     try {
         const response = await fetch("/api/room", {
-            method: "GET",
-            cache: "no-store"
+            cache:"no-store"
         });
 
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-            throw new Error(data.error || "Could not load Bingo room.");
+            throw new Error(data.error || "Could not load round.");
         }
 
         roomData = data.room;
@@ -576,19 +885,36 @@ async function loadRoom() {
             (data.reservedCards || []).map(Number)
         );
 
+        $("round-id").textContent =
+            roomData.roundId
+                ? roomData.roundId.slice(0, 8)
+                : "—";
+
         prizePool.textContent = formatMoney(roomData.prizePool);
 
-        roomStatus.textContent =
-            roomData.status === "waiting" ? "Waiting" :
-            roomData.status === "countdown" ? "Countdown" :
-            roomData.status === "ready" ? "Ready" :
+        $("game-status").textContent =
+            roomData.status === "waiting" ? "Waiting for players" :
+            roomData.status === "countdown" ? "Game starting soon" :
+            roomData.status === "playing" ? "Game in progress" :
+            roomData.status === "finished" ? "Round finished" :
             roomData.status;
+
+        $("winner-message").classList.toggle(
+            "show",
+            Boolean(roomData.winner)
+        );
+
+        if (roomData.winner) {
+            $("winner-message").textContent =
+                "🏆 Winner: " + roomData.winner.name;
+        }
+
+        renderNumberBoard();
 
         for (let i = 1; i <= 500; i++) {
             renderCard(i);
         }
 
-        updateSelectedDisplay();
         updateCountdown();
 
         reserveButton.disabled =
@@ -599,9 +925,46 @@ async function loadRoom() {
         return true;
 
     } catch (error) {
-        console.error("ROOM LOAD ERROR:", error);
+        console.error("ROOM ERROR:", error);
         showToast(error.message);
         return false;
+    }
+}
+
+async function loadPlayerGame() {
+    if (!tg?.initData) return;
+
+    try {
+        const response = await fetch("/api/game/state", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({initData:tg.initData})
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || "Could not load your cards.");
+        }
+
+        myCards = data.myCards || [];
+
+        if (data.room) {
+            roomData = {
+                ...roomData,
+                ...data.room
+            };
+        }
+
+        renderNumberBoard();
+        renderMyCards();
+
+        for (let i = 1; i <= 500; i++) {
+            renderCard(i);
+        }
+
+    } catch (error) {
+        console.error("PLAYER GAME ERROR:", error);
     }
 }
 
@@ -624,15 +987,14 @@ function updateCountdown() {
 
             timeLeft.textContent = remaining + "s";
 
-            if (remaining === 0) {
-                roomStatus.textContent = "Ready";
-                reserveButton.disabled = true;
-            }
-
         } else if (roomData.status === "waiting") {
             timeLeft.textContent = "Waiting";
+
+        } else if (roomData.status === "playing") {
+            timeLeft.textContent = "Playing";
+
         } else {
-            timeLeft.textContent = "—";
+            timeLeft.textContent = "Finished";
         }
     }
 
@@ -643,36 +1005,34 @@ function updateCountdown() {
 async function reserveCards() {
     if (busy) return;
 
-    if (!player || !tg?.initData) {
-        showToast("Please wait for Telegram login.");
+    if (!tg?.initData || !player) {
+        showToast("Please wait for login.");
         return;
     }
 
-    if (selectedCards.size < 1) {
-        showToast("Please select at least one card.");
+    if (!selectedCards.size) {
+        showToast("Select at least one card.");
         return;
     }
 
-    if (selectedCards.size + myCards.size > MAX_CARDS) {
-        showToast("You can reserve a maximum of 4 cards.");
+    if (selectedCards.size + myCards.length > MAX_CARDS) {
+        showToast("Maximum 4 cards per player.");
         return;
     }
-
-    const cards = [...selectedCards];
 
     busy = true;
     reserveButton.disabled = true;
     reserveButton.textContent = "Reserving...";
 
+    const cards = [...selectedCards];
+
     try {
         const response = await fetch("/api/room/reserve", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                initData: tg.initData,
-                cards: cards
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                initData:tg.initData,
+                cards
             })
         });
 
@@ -683,7 +1043,6 @@ async function reserveCards() {
         }
 
         cards.forEach(card => {
-            myCards.add(card);
             selectedCards.delete(card);
             reservedCards.add(card);
         });
@@ -696,34 +1055,78 @@ async function reserveCards() {
             bonusBalance.textContent = formatMoney(data.bonusBalance);
         }
 
-        if (data.room) roomData = data.room;
-
-        for (let i = 1; i <= 500; i++) {
-            renderCard(i);
-        }
-
-        updateSelectedDisplay();
-
         showToast(
-            "Successfully reserved " + cards.length +
-            " card(s)! Charged " + formatMoney(data.charged) + ".",
+            "Reserved " + cards.length + " card(s)! " +
+            "Charged " + formatMoney(data.charged),
             "success"
         );
 
-        await loadRoom();
+        await refreshGame();
 
     } catch (error) {
         showToast(error.message);
-        await loadRoom();
+        await refreshGame();
 
     } finally {
         busy = false;
         reserveButton.textContent = "🔒 Reserve";
-
         reserveButton.disabled =
             !roomData ||
             (roomData.status !== "waiting" &&
              roomData.status !== "countdown");
+    }
+}
+
+async function claimBingo() {
+    if (busy) return;
+
+    if (!tg?.initData) {
+        showToast("Telegram login required.");
+        return;
+    }
+
+    busy = true;
+    bingoButton.disabled = true;
+    bingoButton.textContent = "Checking Bingo...";
+
+    try {
+        const response = await fetch("/api/game/claim", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({initData:tg.initData})
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || "Bingo claim rejected.");
+        }
+
+        showToast("🎉 BINGO! You are the winner!", "success");
+
+        $("winner-message").textContent =
+            "🏆 WINNER: " + (data.winner?.name || "You!");
+
+        $("winner-message").classList.add("show");
+
+        await refreshGame();
+
+    } catch (error) {
+        showToast(error.message);
+        await refreshGame();
+
+    } finally {
+        busy = false;
+        bingoButton.textContent = "🎉 BINGO!";
+        bingoButton.disabled = false;
+    }
+}
+
+async function refreshGame() {
+    const loaded = await loadRoom();
+
+    if (loaded) {
+        await loadPlayerGame();
     }
 }
 
@@ -732,27 +1135,28 @@ async function refreshApp() {
 
     const authenticated = await authenticate();
 
-    if (authenticated) await loadRoom();
+    if (authenticated) {
+        await refreshGame();
+    }
 }
 
-document.getElementById("reserve-button")
-    .addEventListener("click", reserveCards);
-
-document.getElementById("refresh-button")
-    .addEventListener("click", refreshApp);
+$("reserve-button").addEventListener("click", reserveCards);
+$("refresh-button").addEventListener("click", refreshApp);
+bingoButton.addEventListener("click", claimBingo);
 
 async function startApp() {
     createCards();
+    createNumberBoard();
 
     const authenticated = await authenticate();
 
-    if (authenticated) {
-        await loadRoom();
+    if (!authenticated) return;
 
-        refreshTimer = setInterval(() => {
-            if (!busy) loadRoom();
-        }, 5000);
-    }
+    await refreshGame();
+
+    refreshTimer = setInterval(() => {
+        if (!busy) refreshGame();
+    }, 3000);
 }
 
 startApp();
