@@ -399,7 +399,7 @@ async function handleWebhook(env, update) {
         reply_markup: {
           inline_keyboard: [[
             {
-              text: "🎮 PLAY BUNA BINGO",
+              text: "🎮 PLAY 10 ETB",
               web_app: { url: GAME_URL }
             }
           ]]
