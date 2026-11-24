@@ -868,11 +868,177 @@ export class BingoRoom {
       return json({ success: false, error: "Invalid card selection." }, 400);
     }
 
+    
+ // DURABLE OBJECT: ONE SHARED ROUND, PRIVATE PLAYER CARDS
+export class BingoRoom {
+  constructor(ctx, env) {
+    this.ctx = ctx;
+    this.env = env;
+    this.queue = Promise.resolve();
+
+    this.ready = this.ctx.blockConcurrencyWhile(async () => {
+      let room = await this.ctx.storage.get("room");
+
+      if (!room) {
+        room = this.newRoom();
+        await this.ctx.storage.put("room", room);
+        await this.ctx.storage.put("reservations", {});
+        await this.ctx.storage.put("numberSequence", []);
+      }
+    });
+  }
+
+  newRoom() {
+    return {
+      name: "BUNA BINGO",
+      status: "waiting",
+      maxPlayers: MAX_CARD_SLOTS,
+      minPlayers: 2,
+      maxCardsPerPlayer: MAX_CARDS,
+      cardPrice: CARD_PRICE,
+      prizePercentage: 60,
+      platformPercentage: 40,
+      countdownSeconds: COUNTDOWN_SECONDS,
+      playersCount: 0,
+      cardsSold: 0,
+      totalSales: 0,
+      prizePool: 0,
+      roundId: crypto.randomUUID(),
+      countdownEndsAt: null,
+      calledNumbers: [],
+      currentNumber: null,
+      winner: null,
+      winnerRevealEndsAt: null,
+      startedAt: null,
+      finishedAt: null
+    };
+  }
+
+  async fetch(request) {
+    await this.ready;
+
+    const path = new URL(request.url).pathname;
+
+    if (request.method === "GET" && path === "/status") {
+      const room = await this.ctx.storage.get("room");
+      const reservations =
+        await this.ctx.storage.get("reservations") || {};
+
+      return json({
+        success: true,
+        room,
+        reservedCards: Object.keys(reservations).map(Number)
+      });
+    }
+
+    if (request.method === "POST" && path === "/player-state") {
+      const body = await request.json();
+      return this.playerState(body);
+    }
+
+    if (request.method === "POST" && path === "/reserve") {
+      return this.serial(() => this.reserve(request));
+    }
+
+    if (request.method === "POST" && path === "/claim") {
+      return this.serial(() => this.claim(request));
+    }
+
+    return json({ success: false, error: "Not found" }, 404);
+  }
+
+  serial(task) {
+    const result = this.queue.then(task, task);
+    this.queue = result.then(() => undefined, () => undefined);
+    return result;
+  }
+
+  async playerState(body) {
+    const { playerId, telegramId } = body;
+
+    if (!playerId || !telegramId) {
+      return json({ success: false, error: "Invalid player." }, 400);
+    }
+
+    const room = await this.ctx.storage.get("room");
+    const reservations =
+      await this.ctx.storage.get("reservations") || {};
+
+    const myCards = Object.entries(reservations)
+      .filter(([, item]) =>
+        item.playerId === playerId &&
+        item.telegramId === String(telegramId)
+      )
+      .map(([slot, item]) => ({
+        slot: Number(slot),
+        card: item.card
+      }));
+
+    return json({
+      success: true,
+      privateRoomId: playerId,
+      room: {
+        name: room.name,
+        roundId: room.roundId,
+        status: room.status,
+        countdownEndsAt: room.countdownEndsAt,
+        calledNumbers: room.calledNumbers,
+        currentNumber: room.currentNumber,
+        cardsSold: room.cardsSold,
+        playersCount: room.playersCount,
+        prizePool: room.prizePool,
+        winner: room.winner,
+        winnerRevealEndsAt: room.winnerRevealEndsAt,
+        finishedAt: room.finishedAt
+      },
+      myCards
+    });
+  }
+
+  async reserve(request) {
+    const body = await request.json();
+    const { playerId, telegramId, cards } = body;
+
+    if (!playerId || !telegramId || !Array.isArray(cards)) {
+      return json({
+        success: false,
+        error: "Invalid reservation data."
+      }, 400);
+    }
+
+    const room = await this.ctx.storage.get("room");
+    const reservations =
+      await this.ctx.storage.get("reservations") || {};
+
+    if (room.status !== "waiting" && room.status !== "countdown") {
+      return json({
+        success: false,
+        error: "This round is closed."
+      }, 409);
+    }
+
+    if (
+      cards.length < 1 ||
+      cards.length > MAX_CARDS ||
+      cards.some(n =>
+        !Number.isInteger(n) || n < 1 || n > MAX_CARD_SLOTS
+      ) ||
+      new Set(cards).size !== cards.length
+    ) {
+      return json({
+        success: false,
+        error: "Invalid card selection."
+      }, 400);
+    }
+
     const myCards = Object.values(reservations)
       .filter(r => r.playerId === playerId);
 
     if (myCards.length + cards.length > MAX_CARDS) {
-      return json({ success: false, error: "Maximum 4 cards per player." }, 400);
+      return json({
+        success: false,
+        error: "Maximum 4 cards per player."
+      }, 400);
     }
 
     for (const card of cards) {
@@ -892,7 +1058,10 @@ export class BingoRoom {
       !existingPlayers.has(playerId) &&
       existingPlayers.size >= room.maxPlayers
     ) {
-      return json({ success: false, error: "Round is full." }, 409);
+      return json({
+        success: false,
+        error: "Round is full."
+      }, 409);
     }
 
     const total = cards.length * room.cardPrice;
@@ -904,14 +1073,20 @@ export class BingoRoom {
     `).bind(playerId, String(telegramId)).first();
 
     if (!player) {
-      return json({ success: false, error: "Player account not found." }, 404);
+      return json({
+        success: false,
+        error: "Player account not found."
+      }, 404);
     }
 
     const bonus = Math.max(0, Number(player.bonus_balance || 0));
     const main = Math.max(0, Number(player.main_balance || 0));
 
     if (bonus + main < total) {
-      return json({ success: false, error: "Insufficient balance." }, 400);
+      return json({
+        success: false,
+        error: "Insufficient balance."
+      }, 400);
     }
 
     const bonusUsed = Math.min(bonus, total);
@@ -937,7 +1112,10 @@ export class BingoRoom {
     ).run();
 
     if (!payment.meta || payment.meta.changes !== 1) {
-      return json({ success: false, error: "Balance changed. Try again." }, 409);
+      return json({
+        success: false,
+        error: "Balance changed. Try again."
+      }, 409);
     }
 
     const updatedReservations = { ...reservations };
@@ -956,7 +1134,8 @@ export class BingoRoom {
     updatedRoom.cardsSold += cards.length;
     updatedRoom.totalSales += total;
     updatedRoom.prizePool =
-      updatedRoom.totalSales * updatedRoom.prizePercentage / 100;
+      updatedRoom.totalSales *
+      updatedRoom.prizePercentage / 100;
 
     const players = new Set(
       Object.values(updatedReservations).map(r => r.playerId)
@@ -972,7 +1151,9 @@ export class BingoRoom {
       updatedRoom.countdownEndsAt =
         Date.now() + updatedRoom.countdownSeconds * 1000;
 
-      await this.ctx.storage.setAlarm(updatedRoom.countdownEndsAt);
+      await this.ctx.storage.setAlarm(
+        updatedRoom.countdownEndsAt
+      );
     }
 
     try {
@@ -986,9 +1167,17 @@ export class BingoRoom {
         SET
           bonus_balance = COALESCE(bonus_balance, 0) + ?,
           main_balance = COALESCE(main_balance, 0) + ?,
-          cards_count = MAX(0, COALESCE(cards_count, 0) - ?)
+          cards_count = MAX(
+            0,
+            COALESCE(cards_count, 0) - ?
+          )
         WHERE id = ?
-      `).bind(bonusUsed, mainUsed, cards.length, playerId).run();
+      `).bind(
+        bonusUsed,
+        mainUsed,
+        cards.length,
+        playerId
+      ).run();
 
       throw error;
     }
@@ -1015,33 +1204,46 @@ export class BingoRoom {
     const { playerId, telegramId } = await request.json();
 
     if (!playerId || !telegramId) {
-      return json({ success: false, error: "Invalid player." }, 400);
+      return json({
+        success: false,
+        error: "Invalid player."
+      }, 400);
     }
 
     const room = await this.ctx.storage.get("room");
-    const reservations = await this.ctx.storage.get("reservations") || {};
+    const reservations =
+      await this.ctx.storage.get("reservations") || {};
 
     if (room.status !== "playing") {
       return json({
         success: false,
-        error: room.winner ? "This round already has a winner." : "The game is not running."
+        error: room.winner
+          ? "This round already has a winner."
+          : "The game is not running."
       }, 409);
     }
 
     if (room.winner) {
-      return json({ success: false, error: "Too late! A winner was already confirmed." }, 409);
+      return json({
+        success: false,
+        error: "Too late! A winner was already confirmed."
+      }, 409);
     }
 
-    const myCards = Object.values(reservations).filter(r =>
-      r.playerId === playerId &&
-      r.telegramId === String(telegramId)
-    );
+    const myCards = Object.entries(reservations)
+      .filter(([, item]) =>
+        item.playerId === playerId &&
+        item.telegramId === String(telegramId)
+      );
 
     if (!myCards.length) {
-      return json({ success: false, error: "You have no cards in this round." }, 403);
+      return json({
+        success: false,
+        error: "You have no cards in this round."
+      }, 403);
     }
 
-    const winningCard = myCards.find(item =>
+    const winningCard = myCards.find(([, item]) =>
       hasBingo(item.card, room.calledNumbers)
     );
 
@@ -1061,31 +1263,113 @@ export class BingoRoom {
       playerId,
       telegramId: String(telegramId),
       name: player?.first_name || player?.username || "Player",
-      card: Object.entries(reservations).find(([, item]) =>
-        item === winningCard
-      )?.[0] || null,
+      card: Number(winningCard[0]),
       claimedAt: Date.now()
     };
 
     room.status = "finished";
     room.winner = winner;
     room.finishedAt = Date.now();
+    room.winnerRevealEndsAt = Date.now() + 10000;
 
     await this.ctx.storage.put("room", room);
+
+    // Stop the number calling and schedule the next reset.
     await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.setAlarm(room.winnerRevealEndsAt);
+
+    // Announce the winner to every player in this round.
+    await this.announceWinner(room, reservations);
 
     return json({
       success: true,
       winner,
+      room,
       message: "BINGO! You are the first verified winner!"
     });
+  }
+
+  async announceWinner(room, reservations) {
+    const telegramIds = [
+      ...new Set(
+        Object.values(reservations).map(item =>
+          String(item.telegramId)
+        )
+      )
+    ];
+
+    const message =
+      "🏆 BUNA BINGO — WINNER! 🏆\n\n" +
+      "🎉 Winner: " + room.winner.name + "\n" +
+      "🎫 Winning Card: #" + room.winner.card + "\n" +
+      "💰 Prize Pool: " +
+      Number(room.prizePool || 0).toFixed(2) + " ETB\n\n" +
+      "The game has ended. Thank you for playing!\n" +
+      "The next round will be ready shortly.";
+
+    await Promise.allSettled(
+      telegramIds.map(telegramId =>
+        tg(this.env, "sendMessage", {
+          chat_id: telegramId,
+          text: message
+        })
+      )
+    );
+  }
+
+  async announceNoWinner(reservations) {
+    const telegramIds = [
+      ...new Set(
+        Object.values(reservations).map(item =>
+          String(item.telegramId)
+        )
+      )
+    ];
+
+    const message =
+      "🎮 BUNA BINGO — ROUND ENDED\n\n" +
+      "All 75 numbers have been called, but no valid BINGO claim was made.\n\n" +
+      "Thank you for playing! A new round will be ready shortly.";
+
+    await Promise.allSettled(
+      telegramIds.map(telegramId =>
+        tg(this.env, "sendMessage", {
+          chat_id: telegramId,
+          text: message
+        })
+      )
+    );
+  }
+
+  async resetRound() {
+    const nextRoom = this.newRoom();
+
+    await this.ctx.storage.transaction(async txn => {
+      await txn.put("room", nextRoom);
+      await txn.put("reservations", {});
+      await txn.put("numberSequence", []);
+    });
+
+    await this.ctx.storage.deleteAlarm();
   }
 
   async alarm() {
     await this.ready;
 
     const room = await this.ctx.storage.get("room");
-    if (!room || room.winner || room.status === "finished") return;
+
+    if (!room) return;
+
+    // Keep the winner visible for 10 seconds, then reset.
+    if (room.status === "finished") {
+      if (
+        room.winnerRevealEndsAt &&
+        Date.now() >= room.winnerRevealEndsAt
+      ) {
+        await this.resetRound();
+      }
+      return;
+    }
 
     if (
       room.status === "countdown" &&
@@ -1114,14 +1398,23 @@ export class BingoRoom {
 
   async callNextNumber() {
     const room = await this.ctx.storage.get("room");
-    const sequence = await this.ctx.storage.get("numberSequence") || [];
+    const sequence =
+      await this.ctx.storage.get("numberSequence") || [];
 
     if (room.status !== "playing" || room.winner) return;
 
     if (!sequence.length) {
       room.status = "finished";
       room.finishedAt = Date.now();
+      room.winnerRevealEndsAt = Date.now() + 10000;
+
       await this.ctx.storage.put("room", room);
+      await this.ctx.storage.setAlarm(room.winnerRevealEndsAt);
+
+      const reservations =
+        await this.ctx.storage.get("reservations") || {};
+
+      await this.announceNoWinner(reservations);
       return;
     }
 
@@ -1134,11 +1427,22 @@ export class BingoRoom {
     await this.ctx.storage.put("room", room);
 
     if (sequence.length > 0) {
-      await this.ctx.storage.setAlarm(Date.now() + CALL_INTERVAL_MS);
+      await this.ctx.storage.setAlarm(
+        Date.now() + CALL_INTERVAL_MS
+      );
     } else {
       room.status = "finished";
       room.finishedAt = Date.now();
+      room.winnerRevealEndsAt = Date.now() + 10000;
+
       await this.ctx.storage.put("room", room);
+      await this.ctx.storage.setAlarm(room.winnerRevealEndsAt);
+
+      const reservations =
+        await this.ctx.storage.get("reservations") || {};
+
+      await this.announceNoWinner(reservations);
     }
   }
 }
+    
