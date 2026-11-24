@@ -4,6 +4,12 @@ const CHANNEL = "@bunabingoo";
 const BOT_USERNAME = "BunaBingoGameBot";
 const SUPPORT = "@bunabingoosupport";
 
+const CARD_PRICE = 10;
+const MAX_CARDS = 4;
+const MAX_CARD_SLOTS = 500;
+const COUNTDOWN_SECONDS = 60;
+const CALL_INTERVAL_MS = 5000;
+
 // TELEGRAM API
 async function tg(env, method, data) {
   const response = await fetch(
@@ -18,43 +24,24 @@ async function tg(env, method, data) {
   const result = await response.json();
 
   if (!result.ok) {
-    console.error("TELEGRAM API REJECTED:", method, result);
-    throw new Error(
-      "Telegram API " + method + ": " + JSON.stringify(result)
-    );
+    console.error("TELEGRAM API ERROR:", result);
+    throw new Error("Telegram API error: " + JSON.stringify(result));
   }
 
   return result;
 }
 
-// REMOVE OLD KEYBOARD
-async function removeKeyboard(env, chatId) {
-  await tg(env, "sendMessage", {
-    chat_id: chatId,
-    text: " ",
-    reply_markup: { remove_keyboard: true }
-  });
-}
-
-// MAIN MENU
 function menuKeyboard() {
   return {
     keyboard: [
       [{ text: "🎮 Play BUNA BINGO" }],
-      [
-        { text: "💰 Balance" },
-        { text: "🎮 Game Rules" }
-      ],
-      [
-        { text: "🎧 Support" },
-        { text: "🔗 Invite Link" }
-      ]
+      [{ text: "💰 Balance" }, { text: "🎮 Game Rules" }],
+      [{ text: "🎧 Support" }, { text: "🔗 Invite Link" }]
     ],
     resize_keyboard: true
   };
 }
 
-// CONTACT BUTTON
 function contactKeyboard() {
   return {
     keyboard: [
@@ -65,7 +52,6 @@ function contactKeyboard() {
   };
 }
 
-// WELCOME MESSAGE
 async function sendWelcome(env, chatId) {
   await tg(env, "sendMessage", {
     chat_id: chatId,
@@ -82,7 +68,6 @@ async function sendWelcome(env, chatId) {
   });
 }
 
-// CHECK CHANNEL MEMBERSHIP
 async function checkMembership(env, userId) {
   const result = await tg(env, "getChatMember", {
     chat_id: CHANNEL,
@@ -99,7 +84,6 @@ async function checkMembership(env, userId) {
   );
 }
 
-// CREATE OR UPDATE PLAYER
 async function getOrCreatePlayer(env, user) {
   const telegramId = String(user.id);
 
@@ -131,8 +115,7 @@ async function getOrCreatePlayer(env, user) {
     await env.DB.prepare(`
       UPDATE players
       SET referral_code = ?
-      WHERE telegram_id = ?
-        AND referral_code IS NULL
+      WHERE telegram_id = ? AND referral_code IS NULL
     `).bind(code, telegramId).run();
 
     player = await env.DB.prepare(`
@@ -143,7 +126,6 @@ async function getOrCreatePlayer(env, user) {
   return player;
 }
 
-// REGISTER REFERRAL
 async function registerReferral(env, player, payload) {
   if (!payload || !payload.startsWith("ref_")) return;
 
@@ -156,9 +138,7 @@ async function registerReferral(env, player, payload) {
   if (!referrer || referrer.telegram_id === player.telegram_id) return;
 
   await env.DB.prepare(`
-    INSERT OR IGNORE INTO referrals (
-      id, referrer_id, referred_id
-    )
+    INSERT OR IGNORE INTO referrals (id, referrer_id, referred_id)
     VALUES (?, ?, ?)
   `).bind(
     crypto.randomUUID(),
@@ -167,7 +147,6 @@ async function registerReferral(env, player, payload) {
   ).run();
 }
 
-// BALANCE
 async function showBalance(env, chatId, player) {
   await tg(env, "sendMessage", {
     chat_id: chatId,
@@ -183,7 +162,6 @@ async function showBalance(env, chatId, player) {
   });
 }
 
-// GAME RULES
 async function showRules(env, chatId) {
   await tg(env, "sendMessage", {
     chat_id: chatId,
@@ -197,7 +175,6 @@ async function showRules(env, chatId) {
   });
 }
 
-// SUPPORT
 async function showSupport(env, chatId) {
   await tg(env, "sendMessage", {
     chat_id: chatId,
@@ -206,7 +183,6 @@ async function showSupport(env, chatId) {
   });
 }
 
-// INVITE LINK
 async function showInvite(env, chatId, player) {
   const count = await env.DB.prepare(`
     SELECT COUNT(*) AS total
@@ -225,17 +201,14 @@ async function showInvite(env, chatId, player) {
       "👥 የጋበዙት ተጫዋቾች: " +
       Number(count.total || 0),
     reply_markup: {
-      inline_keyboard: [
-        [{
-          text: "📤 Share Invite Link",
-          url: "https://t.me/share/url?url=" + encodeURIComponent(link)
-        }]
-      ]
+      inline_keyboard: [[{
+        text: "📤 Share Invite Link",
+        url: "https://t.me/share/url?url=" + encodeURIComponent(link)
+      }]]
     }
   });
 }
 
-// HANDLE CONTACT
 async function handleContact(env, message) {
   const sender = message.from;
   const contact = message.contact;
@@ -256,9 +229,7 @@ async function handleContact(env, message) {
 
   await env.DB.prepare(`
     UPDATE players
-    SET phone_number = ?,
-        first_name = ?,
-        last_name = ?
+    SET phone_number = ?, first_name = ?, last_name = ?
     WHERE telegram_id = ?
   `).bind(
     contact.phone_number,
@@ -279,7 +250,6 @@ async function handleContact(env, message) {
   });
 }
 
-// WEBHOOK HANDLER
 async function handleWebhook(env, update) {
   if (update.callback_query) {
     const query = update.callback_query;
@@ -326,7 +296,6 @@ async function handleWebhook(env, update) {
   const chatId = message.chat.id;
   const user = message.from;
 
-  // START
   if (
     typeof message.text === "string" &&
     message.text.startsWith("/start")
@@ -339,7 +308,6 @@ async function handleWebhook(env, update) {
     return;
   }
 
-  // CONTACT
   if (message.contact) {
     let joined = false;
 
@@ -360,7 +328,6 @@ async function handleWebhook(env, update) {
 
   const player = await getOrCreatePlayer(env, user);
 
-  // MEMBERSHIP
   let joined = false;
 
   try {
@@ -380,7 +347,6 @@ async function handleWebhook(env, update) {
     return;
   }
 
-  // CONTACT REQUIRED
   if (!player.phone_number) {
     await tg(env, "sendMessage", {
       chat_id: chatId,
@@ -390,19 +356,16 @@ async function handleWebhook(env, update) {
     return;
   }
 
-  // MENU
   switch (message.text) {
     case "🎮 Play BUNA BINGO":
       await tg(env, "sendMessage", {
         chat_id: chatId,
         text: "🎮 Ready to play Buna Bingo?",
         reply_markup: {
-          inline_keyboard: [[
-            {
-              text: "🎮 PLAY 10 ETB",
-              web_app: { url: GAME_URL }
-            }
-          ]]
+          inline_keyboard: [[{
+            text: "🎮 PLAY 10 ETB",
+            web_app: { url: GAME_URL }
+          }]]
         }
       });
       break;
@@ -422,13 +385,10 @@ async function handleWebhook(env, update) {
     case "🔗 Invite Link":
       await showInvite(env, chatId, player);
       break;
-
-    default:
-      break;
   }
 }
 
-// MINI APP AUTHENTICATION
+// TELEGRAM MINI APP AUTH
 async function verifyTelegram(initData, botToken) {
   if (typeof initData !== "string" || !botToken) return null;
 
@@ -494,6 +454,11 @@ async function verifyTelegram(initData, botToken) {
   }
 }
 
+// JSON RESPONSE
+function json(data, status = 200) {
+  return Response.json(data, { status });
+}
+
 // CLOUDFLARE WORKER
 export default {
   async fetch(request, env) {
@@ -509,24 +474,15 @@ export default {
         request.headers.get("X-Telegram-Bot-Api-Secret-Token") !==
           env.WEBHOOK_SECRET
       ) {
-        return Response.json(
-          { ok: false, error: "Unauthorized" },
-          { status: 401 }
-        );
+        return json({ ok: false, error: "Unauthorized" }, 401);
       }
 
       try {
-        const update = await request.json();
-        await handleWebhook(env, update);
-
-        return Response.json({ ok: true });
+        await handleWebhook(env, await request.json());
+        return json({ ok: true });
       } catch (error) {
-        console.error("BUNA BINGO WEBHOOK ERROR:", error);
-
-        return Response.json(
-          { ok: false, error: "Webhook failed" },
-          { status: 500 }
-        );
+        console.error("WEBHOOK ERROR:", error);
+        return json({ ok: false, error: "Webhook failed" }, 500);
       }
     }
 
@@ -537,22 +493,18 @@ export default {
     ) {
       try {
         const body = await request.json();
-
-        const user = await verifyTelegram(
-          body.initData,
-          env.BOT_TOKEN
-        );
+        const user = await verifyTelegram(body.initData, env.BOT_TOKEN);
 
         if (!user || !user.id) {
-          return Response.json(
-            { success: false, error: "Invalid Telegram authentication" },
-            { status: 401 }
-          );
+          return json({
+            success: false,
+            error: "Invalid Telegram authentication"
+          }, 401);
         }
 
         const player = await getOrCreatePlayer(env, user);
 
-        return Response.json({
+        return json({
           success: true,
           player: {
             id: player.id,
@@ -567,48 +519,71 @@ export default {
           }
         });
       } catch (error) {
-        console.error("MINI APP AUTH ERROR:", error);
-
-        return Response.json(
-          { success: false, error: "Authentication failed" },
-          { status: 500 }
-        );
+        console.error("AUTH ERROR:", error);
+        return json({ success: false, error: "Authentication failed" }, 500);
       }
     }
 
-    // BINGO ROOM
+    // PUBLIC ROUND STATUS
     if (url.pathname === "/api/room" && request.method === "GET") {
       const id = env.BINGO_ROOM.idFromName("main");
-      return env.BINGO_ROOM.get(id).fetch(request);
+      return env.BINGO_ROOM.get(id).fetch(
+        new Request("https://buna-bingo.internal/status")
+      );
     }
 
-    // RESERVE BINGO CARDS
+    // PRIVATE PLAYER GAME STATE
+    if (
+      url.pathname === "/api/game/state" &&
+      request.method === "POST"
+    ) {
+      try {
+        const body = await request.json();
+        const user = await verifyTelegram(body.initData, env.BOT_TOKEN);
+
+        if (!user || !user.id) {
+          return json({ success: false, error: "Invalid authentication" }, 401);
+        }
+
+        const player = await getOrCreatePlayer(env, user);
+        const id = env.BINGO_ROOM.idFromName("main");
+
+        return env.BINGO_ROOM.get(id).fetch(
+          new Request("https://buna-bingo.internal/player-state", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              playerId: player.id,
+              telegramId: player.telegram_id
+            })
+          })
+        );
+      } catch (error) {
+        console.error("GAME STATE ERROR:", error);
+        return json({ success: false, error: "Could not load game." }, 500);
+      }
+    }
+
+    // RESERVE CARDS
     if (
       url.pathname === "/api/room/reserve" &&
       request.method === "POST"
     ) {
       try {
         const body = await request.json();
-
-        const user = await verifyTelegram(
-          body.initData,
-          env.BOT_TOKEN
-        );
+        const user = await verifyTelegram(body.initData, env.BOT_TOKEN);
 
         if (!user || !user.id) {
-          return Response.json(
-            { success: false, error: "Invalid Telegram authentication" },
-            { status: 401 }
-          );
+          return json({ success: false, error: "Invalid authentication" }, 401);
         }
 
         const player = await getOrCreatePlayer(env, user);
 
         if (!player.phone_number) {
-          return Response.json(
-            { success: false, error: "Please share your contact first." },
-            { status: 403 }
-          );
+          return json({
+            success: false,
+            error: "Please share your contact first."
+          }, 403);
         }
 
         const cards = body.cards;
@@ -616,21 +591,17 @@ export default {
         if (
           !Array.isArray(cards) ||
           cards.length < 1 ||
-          cards.length > 4 ||
-          cards.some(n => !Number.isInteger(n) || n < 1 || n > 500) ||
+          cards.length > MAX_CARDS ||
+          cards.some(n => !Number.isInteger(n) || n < 1 || n > MAX_CARD_SLOTS) ||
           new Set(cards).size !== cards.length
         ) {
-          return Response.json(
-            { success: false, error: "Select 1 to 4 valid cards." },
-            { status: 400 }
-          );
+          return json({ success: false, error: "Select 1 to 4 valid cards." }, 400);
         }
 
         const id = env.BINGO_ROOM.idFromName("main");
 
-        const roomRequest = new Request(
-          "https://buna-bingo.internal/reserve",
-          {
+        return env.BINGO_ROOM.get(id).fetch(
+          new Request("https://buna-bingo.internal/reserve", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -638,39 +609,128 @@ export default {
               telegramId: player.telegram_id,
               cards
             })
-          }
+          })
         );
-
-        return env.BINGO_ROOM.get(id).fetch(roomRequest);
-
       } catch (error) {
-        console.error("BINGO RESERVATION ERROR:", error);
-
-        return Response.json(
-          { success: false, error: "Reservation failed." },
-          { status: 500 }
-        );
+        console.error("RESERVATION ERROR:", error);
+        return json({ success: false, error: "Reservation failed." }, 500);
       }
     }
 
-    // WEBSITE
+    // CLAIM BINGO
+    if (
+      url.pathname === "/api/game/claim" &&
+      request.method === "POST"
+    ) {
+      try {
+        const body = await request.json();
+        const user = await verifyTelegram(body.initData, env.BOT_TOKEN);
+
+        if (!user || !user.id) {
+          return json({ success: false, error: "Invalid authentication" }, 401);
+        }
+
+        const player = await getOrCreatePlayer(env, user);
+        const id = env.BINGO_ROOM.idFromName("main");
+
+        return env.BINGO_ROOM.get(id).fetch(
+          new Request("https://buna-bingo.internal/claim", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              playerId: player.id,
+              telegramId: player.telegram_id
+            })
+          })
+        );
+      } catch (error) {
+        console.error("BINGO CLAIM ERROR:", error);
+        return json({ success: false, error: "Could not check Bingo." }, 500);
+      }
+    }
+
+    // WEBSITE ASSETS
     if (!url.pathname.startsWith("/api/")) {
       return env.ASSETS.fetch(request);
     }
 
-    return Response.json(
-      { error: "Not found" },
-      { status: 404 }
-    );
+    return json({ error: "Not found" }, 404);
   }
 };
 
-// DURABLE OBJECT
+// CREATE A RANDOM 75-BALL BINGO CARD
+function generateBingoCard() {
+  const columns = [
+    [1, 15],
+    [16, 30],
+    [31, 45],
+    [46, 60],
+    [61, 75]
+  ];
+
+  const selectedColumns = columns.map(([min, max]) => {
+    const numbers = [];
+
+    while (numbers.length < 5) {
+      const number = Math.floor(Math.random() * (max - min + 1)) + min;
+      if (!numbers.includes(number)) numbers.push(number);
+    }
+
+    return numbers.sort((a, b) => a - b);
+  });
+
+  const rows = [];
+
+  for (let row = 0; row < 5; row++) {
+    rows.push(
+      selectedColumns.map((column, col) =>
+        row === 2 && col === 2 ? 0 : column[row]
+      )
+    );
+  }
+
+  return rows;
+}
+
+function shuffledNumbers() {
+  const numbers = Array.from({ length: 75 }, (_, i) => i + 1);
+
+  for (let i = numbers.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+  }
+
+  return numbers;
+}
+
+// CHECK HORIZONTAL, VERTICAL AND DIAGONAL BINGO
+function hasBingo(card, calledNumbers) {
+  const called = new Set(calledNumbers);
+
+  const marked = (row, col) => {
+    const value = card[row][col];
+    return value === 0 || called.has(value);
+  };
+
+  for (let row = 0; row < 5; row++) {
+    if ([0, 1, 2, 3, 4].every(col => marked(row, col))) return true;
+  }
+
+  for (let col = 0; col < 5; col++) {
+    if ([0, 1, 2, 3, 4].every(row => marked(row, col))) return true;
+  }
+
+  if ([0, 1, 2, 3, 4].every(i => marked(i, i))) return true;
+  if ([0, 1, 2, 3, 4].every(i => marked(i, 4 - i))) return true;
+
+  return false;
+}
+
+// DURABLE OBJECT: ONE SHARED ROUND, PRIVATE PLAYER CARDS
 export class BingoRoom {
   constructor(ctx, env) {
     this.ctx = ctx;
     this.env = env;
-
     this.queue = Promise.resolve();
 
     this.ready = this.ctx.blockConcurrencyWhile(async () => {
@@ -680,23 +740,29 @@ export class BingoRoom {
         room = {
           name: "BUNA BINGO",
           status: "waiting",
-          maxPlayers: 500,
+          maxPlayers: MAX_CARD_SLOTS,
           minPlayers: 2,
-          maxCardsPerPlayer: 4,
-          cardPrice: 10,
+          maxCardsPerPlayer: MAX_CARDS,
+          cardPrice: CARD_PRICE,
           prizePercentage: 60,
           platformPercentage: 40,
-          countdownSeconds: 60,
+          countdownSeconds: COUNTDOWN_SECONDS,
           playersCount: 0,
           cardsSold: 0,
           totalSales: 0,
           prizePool: 0,
           roundId: crypto.randomUUID(),
-          countdownEndsAt: null
+          countdownEndsAt: null,
+          calledNumbers: [],
+          currentNumber: null,
+          winner: null,
+          startedAt: null,
+          finishedAt: null
         };
 
         await this.ctx.storage.put("room", room);
         await this.ctx.storage.put("reservations", {});
+        await this.ctx.storage.put("numberSequence", []);
       }
     });
   }
@@ -704,98 +770,117 @@ export class BingoRoom {
   async fetch(request) {
     await this.ready;
 
-    if (request.method === "GET") {
-      const room = await this.ctx.storage.get("room");
-      const reservations =
-        await this.ctx.storage.get("reservations") || {};
+    const path = new URL(request.url).pathname;
 
-      return Response.json({
+    if (request.method === "GET" && path === "/status") {
+      const room = await this.ctx.storage.get("room");
+      const reservations = await this.ctx.storage.get("reservations") || {};
+
+      return json({
         success: true,
         room,
         reservedCards: Object.keys(reservations).map(Number)
       });
     }
 
-    if (
-      request.method === "POST" &&
-      new URL(request.url).pathname === "/reserve"
-    ) {
-      const task = this.queue.then(
-        () => this.reserve(request),
-        () => this.reserve(request)
-      );
-
-      this.queue = task.then(
-        () => undefined,
-        () => undefined
-      );
-
-      return task;
+    if (request.method === "POST" && path === "/player-state") {
+      const body = await request.json();
+      return this.playerState(body);
     }
 
-    return Response.json(
-      { success: false, error: "Method not allowed" },
-      { status: 405 }
-    );
+    if (request.method === "POST" && path === "/reserve") {
+      return this.serial(() => this.reserve(request));
+    }
+
+    if (request.method === "POST" && path === "/claim") {
+      return this.serial(() => this.claim(request));
+    }
+
+    return json({ success: false, error: "Not found" }, 404);
+  }
+
+  serial(task) {
+    const result = this.queue.then(task, task);
+    this.queue = result.then(() => undefined, () => undefined);
+    return result;
+  }
+
+  async playerState(body) {
+    const { playerId, telegramId } = body;
+
+    if (!playerId || !telegramId) {
+      return json({ success: false, error: "Invalid player." }, 400);
+    }
+
+    const room = await this.ctx.storage.get("room");
+    const reservations = await this.ctx.storage.get("reservations") || {};
+
+    const myCards = Object.entries(reservations)
+      .filter(([, item]) =>
+        item.playerId === playerId &&
+        item.telegramId === String(telegramId)
+      )
+      .map(([slot, item]) => ({
+        slot: Number(slot),
+        card: item.card
+      }));
+
+    return json({
+      success: true,
+      privateRoomId: playerId,
+      room: {
+        name: room.name,
+        roundId: room.roundId,
+        status: room.status,
+        countdownEndsAt: room.countdownEndsAt,
+        calledNumbers: room.calledNumbers,
+        currentNumber: room.currentNumber,
+        cardsSold: room.cardsSold,
+        playersCount: room.playersCount,
+        prizePool: room.prizePool,
+        winner: room.winner
+      },
+      myCards
+    });
   }
 
   async reserve(request) {
     const body = await request.json();
-
     const { playerId, telegramId, cards } = body;
 
     if (!playerId || !telegramId || !Array.isArray(cards)) {
-      return Response.json(
-        { success: false, error: "Invalid reservation data." },
-        { status: 400 }
-      );
+      return json({ success: false, error: "Invalid reservation data." }, 400);
     }
 
     const room = await this.ctx.storage.get("room");
-    const reservations =
-      await this.ctx.storage.get("reservations") || {};
+    const reservations = await this.ctx.storage.get("reservations") || {};
 
-    if (
-      room.status !== "waiting" &&
-      room.status !== "countdown"
-    ) {
-      return Response.json(
-        { success: false, error: "This round is closed." },
-        { status: 409 }
-      );
+    if (room.status !== "waiting" && room.status !== "countdown") {
+      return json({ success: false, error: "This round is closed." }, 409);
     }
 
     if (
       cards.length < 1 ||
-      cards.length > 4 ||
-      cards.some(n => !Number.isInteger(n) || n < 1 || n > 500) ||
+      cards.length > MAX_CARDS ||
+      cards.some(n => !Number.isInteger(n) || n < 1 || n > MAX_CARD_SLOTS) ||
       new Set(cards).size !== cards.length
     ) {
-      return Response.json(
-        { success: false, error: "Invalid card selection." },
-        { status: 400 }
-      );
+      return json({ success: false, error: "Invalid card selection." }, 400);
     }
 
     const myCards = Object.values(reservations)
       .filter(r => r.playerId === playerId);
 
-    if (myCards.length + cards.length > 4) {
-      return Response.json(
-        { success: false, error: "Maximum 4 cards per player." },
-        { status: 400 }
-      );
+    if (myCards.length + cards.length > MAX_CARDS) {
+      return json({ success: false, error: "Maximum 4 cards per player." }, 400);
     }
 
     for (const card of cards) {
       if (reservations[card]) {
-        return Response.json(
-          {
-            success: false,
-            error: `Card ${card} is already reserved.`
-          },
-          { status: 409 }
-        );
+        return json({
+          success: false,
+          error: `Card ${card} is already reserved.`
+        }, 409);
       }
     }
 
@@ -807,10 +892,7 @@ export class BingoRoom {
       !existingPlayers.has(playerId) &&
       existingPlayers.size >= room.maxPlayers
     ) {
-      return Response.json(
-        { success: false, error: "Room is full." },
-        { status: 409 }
-      );
+      return json({ success: false, error: "Round is full." }, 409);
     }
 
     const total = cards.length * room.cardPrice;
@@ -822,23 +904,16 @@ export class BingoRoom {
     `).bind(playerId, String(telegramId)).first();
 
     if (!player) {
-      return Response.json(
-        { success: false, error: "Player account not found." },
-        { status: 404 }
-      );
+      return json({ success: false, error: "Player account not found." }, 404);
     }
 
     const bonus = Math.max(0, Number(player.bonus_balance || 0));
     const main = Math.max(0, Number(player.main_balance || 0));
 
     if (bonus + main < total) {
-      return Response.json(
-        { success: false, error: "Insufficient balance." },
-        { status: 400 }
-      );
+      return json({ success: false, error: "Insufficient balance." }, 400);
     }
 
-    // BONUS FIRST, THEN MAIN BALANCE
     const bonusUsed = Math.min(bonus, total);
     const mainUsed = total - bonusUsed;
 
@@ -862,19 +937,17 @@ export class BingoRoom {
     ).run();
 
     if (!payment.meta || payment.meta.changes !== 1) {
-      return Response.json(
-        { success: false, error: "Balance changed. Please try again." },
-        { status: 409 }
-      );
+      return json({ success: false, error: "Balance changed. Try again." }, 409);
     }
 
     const updatedReservations = { ...reservations };
 
-    for (const card of cards) {
-      updatedReservations[card] = {
+    for (const cardSlot of cards) {
+      updatedReservations[cardSlot] = {
         playerId,
         telegramId: String(telegramId),
-        reservedAt: Date.now()
+        reservedAt: Date.now(),
+        card: generateBingoCard()
       };
     }
 
@@ -883,8 +956,7 @@ export class BingoRoom {
     updatedRoom.cardsSold += cards.length;
     updatedRoom.totalSales += total;
     updatedRoom.prizePool =
-      updatedRoom.totalSales *
-      updatedRoom.prizePercentage / 100;
+      updatedRoom.totalSales * updatedRoom.prizePercentage / 100;
 
     const players = new Set(
       Object.values(updatedReservations).map(r => r.playerId)
@@ -900,18 +972,15 @@ export class BingoRoom {
       updatedRoom.countdownEndsAt =
         Date.now() + updatedRoom.countdownSeconds * 1000;
 
-      await this.ctx.storage.setAlarm(
-        updatedRoom.countdownEndsAt
-      );
+      await this.ctx.storage.setAlarm(updatedRoom.countdownEndsAt);
     }
 
     try {
-      await this.ctx.storage.transaction(async (txn) => {
+      await this.ctx.storage.transaction(async txn => {
         await txn.put("reservations", updatedReservations);
         await txn.put("room", updatedRoom);
       });
     } catch (error) {
-      // REFUND IF ROOM STORAGE FAILS
       await this.env.DB.prepare(`
         UPDATE players
         SET
@@ -919,23 +988,17 @@ export class BingoRoom {
           main_balance = COALESCE(main_balance, 0) + ?,
           cards_count = MAX(0, COALESCE(cards_count, 0) - ?)
         WHERE id = ?
-      `).bind(
-        bonusUsed,
-        mainUsed,
-        cards.length,
-        playerId
-      ).run();
+      `).bind(bonusUsed, mainUsed, cards.length, playerId).run();
 
       throw error;
     }
 
     const updatedPlayer = await this.env.DB.prepare(`
       SELECT main_balance, bonus_balance
-      FROM players
-      WHERE id = ?
+      FROM players WHERE id = ?
     `).bind(playerId).first();
 
-    return Response.json({
+    return json({
       success: true,
       message: "Cards reserved successfully!",
       reservedCards: cards,
@@ -948,20 +1011,133 @@ export class BingoRoom {
     });
   }
 
+  async claim(request) {
+    const { playerId, telegramId } = await request.json();
+
+    if (!playerId || !telegramId) {
+      return json({ success: false, error: "Invalid player." }, 400);
+    }
+
+    const room = await this.ctx.storage.get("room");
+    const reservations = await this.ctx.storage.get("reservations") || {};
+
+    if (room.status !== "playing") {
+      return json({
+        success: false,
+        error: room.winner ? "This round already has a winner." : "The game is not running."
+      }, 409);
+    }
+
+    if (room.winner) {
+      return json({ success: false, error: "Too late! A winner was already confirmed." }, 409);
+    }
+
+    const myCards = Object.values(reservations).filter(r =>
+      r.playerId === playerId &&
+      r.telegramId === String(telegramId)
+    );
+
+    if (!myCards.length) {
+      return json({ success: false, error: "You have no cards in this round." }, 403);
+    }
+
+    const winningCard = myCards.find(item =>
+      hasBingo(item.card, room.calledNumbers)
+    );
+
+    if (!winningCard) {
+      return json({
+        success: false,
+        error: "No completed Bingo line found. Keep playing!"
+      }, 400);
+    }
+
+    const player = await this.env.DB.prepare(`
+      SELECT first_name, username
+      FROM players WHERE id = ?
+    `).bind(playerId).first();
+
+    const winner = {
+      playerId,
+      telegramId: String(telegramId),
+      name: player?.first_name || player?.username || "Player",
+      card: Object.entries(reservations).find(([, item]) =>
+        item === winningCard
+      )?.[0] || null,
+      claimedAt: Date.now()
+    };
+
+    room.status = "finished";
+    room.winner = winner;
+    room.finishedAt = Date.now();
+
+    await this.ctx.storage.put("room", room);
+    await this.ctx.storage.deleteAlarm();
+
+    return json({
+      success: true,
+      winner,
+      message: "BINGO! You are the first verified winner!"
+    });
+  }
+
   async alarm() {
     await this.ready;
 
     const room = await this.ctx.storage.get("room");
+    if (!room || room.winner || room.status === "finished") return;
 
     if (
-      room &&
       room.status === "countdown" &&
       room.countdownEndsAt &&
       Date.now() >= room.countdownEndsAt
     ) {
-      room.status = "ready";
-      room.countdownEndsAt = null;
+      const sequence = shuffledNumbers();
 
+      room.status = "playing";
+      room.countdownEndsAt = null;
+      room.startedAt = Date.now();
+      room.calledNumbers = [];
+      room.currentNumber = null;
+
+      await this.ctx.storage.put("numberSequence", sequence);
+      await this.ctx.storage.put("room", room);
+
+      await this.callNextNumber();
+      return;
+    }
+
+    if (room.status === "playing") {
+      await this.callNextNumber();
+    }
+  }
+
+  async callNextNumber() {
+    const room = await this.ctx.storage.get("room");
+    const sequence = await this.ctx.storage.get("numberSequence") || [];
+
+    if (room.status !== "playing" || room.winner) return;
+
+    if (!sequence.length) {
+      room.status = "finished";
+      room.finishedAt = Date.now();
+      await this.ctx.storage.put("room", room);
+      return;
+    }
+
+    const next = sequence.shift();
+
+    room.currentNumber = next;
+    room.calledNumbers = [...room.calledNumbers, next];
+
+    await this.ctx.storage.put("numberSequence", sequence);
+    await this.ctx.storage.put("room", room);
+
+    if (sequence.length > 0) {
+      await this.ctx.storage.setAlarm(Date.now() + CALL_INTERVAL_MS);
+    } else {
+      room.status = "finished";
+      room.finishedAt = Date.now();
       await this.ctx.storage.put("room", room);
     }
   }
