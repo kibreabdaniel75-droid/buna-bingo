@@ -642,6 +642,24 @@ export default {
       }
     }
 
+      }
+    }
+
+    // WEBSITE
+    if (!url.pathname.startsWith("/api/")) {
+      return env.ASSETS.fetch(request);
+    }
+
+    return Response.json(
+      { error: "Not found" },
+      { status: 404 }
+    );
+  }
+};
+
+// DURABLE OBJECT
+export class BingoRoom {
+
 
 // DURABLE OBJECT
 export class BingoRoom {
