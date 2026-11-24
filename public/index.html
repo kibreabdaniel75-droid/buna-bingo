@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Buna Bingo</title>
 
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 <style>
 :root {
     --bg-dark:#121212;
@@ -379,11 +381,7 @@ body {
     <div class="toast" id="toast"></div>
 </div>
 
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-
 <script>
-const tg = window.Telegram?.WebApp;
-
 const playerName = document.getElementById("player-name");
 const mainBalance = document.getElementById("main-balance");
 const bonusBalance = document.getElementById("bonus-balance");
@@ -395,9 +393,9 @@ const selectedDisplay = document.getElementById("selected-count");
 const myCardsCounter = document.getElementById("my-cards-counter");
 const reserveButton = document.getElementById("reserve-button");
 
-const CARD_PRICE = 10;
 const MAX_CARDS = 4;
 
+let tg = null;
 let selectedCards = new Set();
 let myCards = new Set();
 let reservedCards = new Set();
@@ -437,7 +435,6 @@ function updateSelectedDisplay() {
 
 function renderCard(cardNumber) {
     const card = document.getElementById("card-" + cardNumber);
-
     if (!card) return;
 
     card.className = "card-number";
@@ -466,18 +463,15 @@ function createCards() {
         card.textContent = i;
 
         card.addEventListener("click", () => {
-            if (busy || reservedCards.has(i) || myCards.has(i)) {
-                return;
-            }
+            if (busy || reservedCards.has(i) || myCards.has(i)) return;
 
             if (selectedCards.has(i)) {
                 selectedCards.delete(i);
             } else {
-                if (selectedCards.size >= MAX_CARDS) {
+                if (selectedCards.size + myCards.size >= MAX_CARDS) {
                     showToast("You can select a maximum of 4 cards.");
                     return;
                 }
-
                 selectedCards.add(i);
             }
 
@@ -493,20 +487,35 @@ function createCards() {
 
 function updateBalances(data) {
     if (!data) return;
-
     mainBalance.textContent = formatMoney(data.main_balance);
     bonusBalance.textContent = formatMoney(data.bonus_balance);
 }
 
 async function authenticate() {
-    if (!tg || !tg.initData) {
-        playerName.textContent = "Open in Telegram";
-        showToast("Please open this game from the Telegram bot.");
+    // Wait briefly for the external Telegram SDK to initialize.
+    for (let i = 0; i < 20; i++) {
+        if (window.Telegram?.WebApp) break;
+        await new Promise(resolve => setTimeout(resolve, 250));
+    }
+
+    tg = window.Telegram?.WebApp || null;
+
+    if (!tg) {
+        playerName.textContent = "SDK not loaded";
+        showToast("Telegram SDK did not load. Please reopen the game.");
+        console.error("SDK missing. Check the Telegram Web App script.");
         return false;
     }
 
     tg.ready();
     tg.expand();
+
+    if (!tg.initData) {
+        playerName.textContent = "Open in Telegram";
+        showToast("No Telegram login data. Open this game using the bot.");
+        console.error("Telegram SDK loaded, but initData is empty.");
+        return false;
+    }
 
     try {
         const response = await fetch("/api/auth/telegram", {
@@ -533,7 +542,8 @@ async function authenticate() {
         ].filter(Boolean).join(" ");
 
         playerName.textContent =
-            fullName || (tg.initDataUnsafe?.user?.username
+            fullName ||
+            (tg.initDataUnsafe?.user?.username
                 ? "@" + tg.initDataUnsafe.user.username
                 : "Player");
 
@@ -543,6 +553,7 @@ async function authenticate() {
     } catch (error) {
         playerName.textContent = "Login failed";
         showToast(error.message);
+        console.error("AUTH ERROR:", error);
         return false;
     }
 }
@@ -632,7 +643,7 @@ function updateCountdown() {
 async function reserveCards() {
     if (busy) return;
 
-    if (!player) {
+    if (!player || !tg?.initData) {
         showToast("Please wait for Telegram login.");
         return;
     }
@@ -685,9 +696,7 @@ async function reserveCards() {
             bonusBalance.textContent = formatMoney(data.bonusBalance);
         }
 
-        if (data.room) {
-            roomData = data.room;
-        }
+        if (data.room) roomData = data.room;
 
         for (let i = 1; i <= 500; i++) {
             renderCard(i);
@@ -705,8 +714,6 @@ async function reserveCards() {
 
     } catch (error) {
         showToast(error.message);
-
-        // Refresh room in case another player took a selected card.
         await loadRoom();
 
     } finally {
@@ -725,9 +732,7 @@ async function refreshApp() {
 
     const authenticated = await authenticate();
 
-    if (authenticated) {
-        await loadRoom();
-    }
+    if (authenticated) await loadRoom();
 }
 
 document.getElementById("reserve-button")
@@ -744,7 +749,6 @@ async function startApp() {
     if (authenticated) {
         await loadRoom();
 
-        // Check for cards reserved by other players.
         refreshTimer = setInterval(() => {
             if (!busy) loadRoom();
         }, 5000);
