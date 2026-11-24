@@ -884,11 +884,12 @@ export class BingoRoom {
     }
 
     try {
-      await this.ctx.storage.put({
-        reservations: updatedReservations,
-        room: updatedRoom
-      });
-    } catch (error) {
+  await this.ctx.storage.transaction(async (txn) => {
+    await txn.put("reservations", updatedReservations);
+    await txn.put("room", updatedRoom);
+  });
+    }
+    catch (error) {
       // REFUND IF ROOM STORAGE FAILS
       await this.env.DB.prepare(`
         UPDATE players
