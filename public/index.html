@@ -1300,49 +1300,54 @@ document.querySelectorAll("[data-language]").forEach(button => {
 
 // ---------- PROMO REDEMPTION ----------
 async function bbRedeemPromo() {
-    const input = $("bb-promo-input");
-    const button = $("bb-redeem-button");
-    const code = input.value.trim().toUpperCase();
+    const input = document.getElementById("promoCodeInput");
+    const button = document.getElementById("redeemPromoButton");
+
+    const code = input.value.trim();
+
     if (!code) {
-        showToast(bbCurrentLanguage === "am" ? "እባክዎ የፕሮሞ ኮድ ያስገቡ።" : "Please enter a promo code.");
+        alert("Please enter a promo code");
         return;
     }
-    if (!tg?.initData || !player) {
-        showToast(bbCurrentLanguage === "am" ? "እባክዎ መጀመሪያ ይግቡ።" : "Please wait for login.");
-        return;
-    }
+
     button.disabled = true;
-    button.textContent = bbCurrentLanguage === "am" ? "በማረጋገጥ ላይ..." : "Redeeming...";
+    button.textContent = "Please wait...";
+
     try {
-        const response = await fetch("/api/promo/redeem", {
+        const response = await fetch(`${GAME_URL}api/promo/redeem`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData: tg.initData, code })
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                code: code,
+                initData: Telegram.WebApp.initData
+            })
         });
+
         const data = await response.json();
-        if (!response.ok || !data.success) throw new Error(data.error || "Promo code redemption failed.");
-        if (data.mainBalance !== undefined) player.main_balance = data.mainBalance;
-        if (data.bonusBalance !== undefined) player.bonus_balance = data.bonusBalance;
-        if (data.main_balance !== undefined) player.main_balance = data.main_balance;
-        if (data.bonus_balance !== undefined) player.bonus_balance = data.bonus_balance;
-        updateBalances(player);
-        updateProfile();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Invalid promo code");
+        }
+
+        alert(data.message || "Promo code redeemed!");
         input.value = "";
-        bbCloseModal("bb-promo-modal");
-        const added = Number(data.bonusAdded ?? data.bonus_amount ?? data.amount ?? 0);
-        showToast(
-            bbCurrentLanguage === "am"
-                ? "ተሳክቷል! " + formatMoney(added) + " ቦነስ ተጨምሯል።"
-                : "Success! " + formatMoney(added) + " bonus added.",
-            "success"
-        );
+
+        // Refresh wallet balance if your app has this function
+        if (typeof bbLoadWallet === "function") {
+            await bbLoadWallet();
+        }
+
     } catch (error) {
-        showToast(error.message || "Could not redeem promo code.");
-    } finally {.
+        alert(error.message || "Something went wrong");
+    } finally {
         button.disabled = false;
-        button.textContent = bbCurrentLanguage === "am" ? "ኮዱን ይጠቀሙ" : "Redeem Code";
+        button.textContent = bbCurrentLanguage === "am"
+            ? "ኮዱን ይጠቀሙ"
+            : "Redeem Code";
     }
-}
+    }
 
 $("bb-redeem-button").addEventListener("click", bbRedeemPromo);
 $("bb-promo-input").addEventListener("keydown", e => { if (e.key === "Enter") bbRedeemPromo(); });
