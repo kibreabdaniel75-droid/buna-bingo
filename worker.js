@@ -1070,23 +1070,28 @@ function hasBingo(card, calledNumbers) {
 // DURABLE OBJECT: ONE SHARED ROUND, PRIVATE PLAYER CARDS
 export class BingoRoom {
   constructor(ctx, env) {
-    this.ctx = ctx;
-    this.env = env;
-    this.queue = Promise.resolve();
+  this.ctx = ctx;
+  this.env = env;
+  this.queue = Promise.resolve();
 
-    this.ready = this.ctx.blockConcurrencyWhile(async () => {
-      let room = await this.ctx.storage.get("room");
+  this.ready = this.ctx.blockConcurrencyWhile(async () => {
+    let room = await this.ctx.storage.get("room");
 
-      if (!room) {
-        room = this.newRoom();
+    if (!room) {
+      room = this.newRoom();
 
-        await this.ctx.storage.put("room", room);
-        await this.ctx.storage.put("reservations", {});
-        await this.ctx.storage.put("numberSequence", []);
-      }
-    });
+      await this.ctx.storage.put("room", room);
+      await this.ctx.storage.put("reservations", {});
+      await this.ctx.storage.put("numberSequence", []);
+    }
+
+    room.prizePercentage = 80;
+    room.platformPercentage = 20;
+    room.prizePool = Math.round(room.totalSales * 0.8 * 100) / 100;
+    await this.ctx.storage.put("room", room);
+  });
   }
-
+    
   newRoom() {
     return {
       name: "BUNA BINGO",
@@ -1095,8 +1100,8 @@ export class BingoRoom {
       minPlayers: 2,
       maxCardsPerPlayer: MAX_CARDS,
       cardPrice: CARD_PRICE,
-      prizePercentage: 60,
-      platformPercentage: 40,
+      prizePercentage: 80,
+      platformPercentage: 20,
       countdownSeconds: COUNTDOWN_SECONDS,
       playersCount: 0,
       cardsSold: 0,
