@@ -1146,33 +1146,7 @@ export class BingoRoom {
     });
   }
 
-  async announceWinner(room, reservations) {
-    const telegramIds = [
-      ...new Set(
-        Object.values(reservations).map(item =>
-          String(item.telegramId)
-        )
-      )
-    ];
 
-    const message =
-      "🏆 BUNA BINGO — WINNER! 🏆\n\n" +
-      "🎉 Winner: " + room.winner.name + "\n" +
-      "🎫 Winning Card: #" + room.winner.card + "\n" +
-      "💰 Prize Pool: " +
-      Number(room.prizePool || 0).toFixed(2) + " ETB\n\n" +
-      "The game has ended. Thank you for playing!\n" +
-      "The next round will be ready shortly.";
-
-    await Promise.allSettled(
-      telegramIds.map(telegramId =>
-        tg(this.env, "sendMessage", {
-          chat_id: telegramId,
-          text: message
-        })
-      )
-    );
-  }
 
   async announceNoWinner(reservations) {
     const telegramIds = [
