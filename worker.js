@@ -1136,7 +1136,7 @@ export class BingoRoom {
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.setAlarm(room.winnerRevealEndsAt);
 
-    await this.announceWinner(room, reservations);
+
 
     return json({
       success: true,
