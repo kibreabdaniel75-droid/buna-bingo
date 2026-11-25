@@ -565,6 +565,72 @@ export default {
       }
     }
 
+    // PRIVATE PLAYING HISTORY
+    if (
+      url.pathname === "/api/game/history" &&
+      request.method === "POST"
+    ) {
+      try {
+        const body = await request.json();
+        const user = await verifyTelegram(body.initData, env.BOT_TOKEN);
+
+        if (!user || !user.id) {
+          return json({
+            success: false,
+            error: "Invalid authentication"
+          }, 401);
+        }
+
+        const player = await getOrCreatePlayer(env, user);
+
+        const result = await env.DB.prepare(`
+          SELECT
+            id,
+            round_id,
+            card_slots,
+            cards_count,
+            amount_spent,
+            played_at
+          FROM game_history
+          WHERE telegram_id = ?
+          ORDER BY played_at DESC
+          LIMIT 50
+        `).bind(player.telegram_id).all();
+
+        const history = (result.results || []).map(item => {
+          let cardSlots = [];
+
+          try {
+            cardSlots = JSON.parse(item.card_slots);
+          } catch {
+            cardSlots = [];
+          }
+
+          return {
+            id: item.id,
+            roundId: item.round_id,
+            roomId: item.round_id.slice(0, 8).toUpperCase(),
+            cardSlots,
+            cardsCount: item.cards_count,
+            amountSpent: item.amount_spent,
+            playedAt: item.played_at
+          };
+        });
+
+        return json({
+          success: true,
+          history
+        });
+
+      } catch (error) {
+        console.error("HISTORY ERROR:", error);
+        return json({
+          success: false,
+          error: "Could not load playing history."
+        }, 500);
+      }
+    }
+
     // RESERVE CARDS
     if (
       url.pathname === "/api/room/reserve" &&
@@ -854,6 +920,49 @@ export class BingoRoom {
     });
   }
 
+  // SAVE EVERY PLAYER'S PLAYING HISTORY
+  async saveRoundHistory(room, reservations) {
+    const players = {};
+
+    for (const [slot, item] of Object.entries(reservations)) {
+      if (!players[item.playerId]) {
+        players[item.playerId] = {
+          telegramId: String(item.telegramId),
+          slots: []
+        };
+      }
+
+      players[item.playerId].slots.push(Number(slot));
+    }
+
+    for (const [playerId, data] of Object.entries(players)) {
+      const count = data.slots.length;
+
+      await this.env.DB.prepare(`
+        INSERT OR IGNORE INTO game_history (
+          id,
+          player_id,
+          telegram_id,
+          round_id,
+          card_slots,
+          cards_count,
+          amount_spent,
+          played_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        crypto.randomUUID(),
+        playerId,
+        data.telegramId,
+        room.roundId,
+        JSON.stringify(data.slots.sort((a, b) => a - b)),
+        count,
+        count * room.cardPrice,
+        room.finishedAt || Date.now()
+      ).run();
+    }
+  }
+
   async reserve(request) {
     const body = await request.json();
     const { playerId, telegramId, cards } = body;
@@ -1131,12 +1240,13 @@ export class BingoRoom {
     room.finishedAt = Date.now();
     room.winnerRevealEndsAt = Date.now() + 10000;
 
+    // SAVE PLAYING HISTORY BEFORE ROUND RESET
+    await this.saveRoundHistory(room, reservations);
+
     await this.ctx.storage.put("room", room);
 
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.setAlarm(room.winnerRevealEndsAt);
-
-
 
     return json({
       success: true,
@@ -1145,8 +1255,6 @@ export class BingoRoom {
       message: "BINGO! You are the first verified winner!"
     });
   }
-
-
 
   async announceNoWinner(reservations) {
     const telegramIds = [
@@ -1191,7 +1299,7 @@ export class BingoRoom {
 
     if (!room) return;
 
-    // Winner reveal lasts 10 seconds.
+    // WINNER REVEAL LASTS 10 SECONDS
     if (room.status === "finished") {
       if (
         room.winnerRevealEndsAt &&
@@ -1202,7 +1310,7 @@ export class BingoRoom {
       return;
     }
 
-    // Countdown ends: start the game.
+    // COUNTDOWN ENDS: START THE GAME
     if (
       room.status === "countdown" &&
       room.countdownEndsAt &&
@@ -1240,11 +1348,14 @@ export class BingoRoom {
       room.finishedAt = Date.now();
       room.winnerRevealEndsAt = Date.now() + 10000;
 
-      await this.ctx.storage.put("room", room);
-      await this.ctx.storage.setAlarm(room.winnerRevealEndsAt);
-
       const reservations =
         await this.ctx.storage.get("reservations") || {};
+
+      // SAVE HISTORY FOR A ROUND WITHOUT A WINNER
+      await this.saveRoundHistory(room, reservations);
+
+      await this.ctx.storage.put("room", room);
+      await this.ctx.storage.setAlarm(room.winnerRevealEndsAt);
 
       await this.announceNoWinner(reservations);
       return;
@@ -1267,11 +1378,14 @@ export class BingoRoom {
       room.finishedAt = Date.now();
       room.winnerRevealEndsAt = Date.now() + 10000;
 
-      await this.ctx.storage.put("room", room);
-      await this.ctx.storage.setAlarm(room.winnerRevealEndsAt);
-
       const reservations =
         await this.ctx.storage.get("reservations") || {};
+
+      // SAVE HISTORY FOR A ROUND WITHOUT A WINNER
+      await this.saveRoundHistory(room, reservations);
+
+      await this.ctx.storage.put("room", room);
+      await this.ctx.storage.setAlarm(room.winnerRevealEndsAt);
 
       await this.announceNoWinner(reservations);
     }
