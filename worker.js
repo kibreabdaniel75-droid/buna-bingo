@@ -1513,7 +1513,46 @@ export class BingoRoom {
       card: Number(winningCard[0]),
       claimedAt: Date.now()
     };
+const prizeAmount = Number(room.prizePool || 0);
 
+if (!player || prizeAmount <= 0) {
+  return json({
+    success: false,
+    error: "Winner payout could not be processed."
+  }, 500);
+}
+
+await this.env.DB.batch([
+  this.env.DB.prepare(`
+    INSERT OR IGNORE INTO game_payouts
+    (round_id, player_id, telegram_id, amount, paid_at, credited)
+    VALUES (?, ?, ?, ?, ?, 0)
+  `).bind(
+    room.roundId,
+    playerId,
+    String(telegramId),
+    prizeAmount,
+    Date.now()
+  ),
+
+  this.env.DB.prepare(`
+    UPDATE players
+    SET main_balance = COALESCE(main_balance, 0) + (
+      SELECT amount FROM game_payouts
+      WHERE round_id = ? AND player_id = ? AND credited = 0
+    )
+    WHERE id = ? AND EXISTS (
+      SELECT 1 FROM game_payouts
+      WHERE round_id = ? AND player_id = ? AND credited = 0
+    )
+  `).bind(room.roundId, playerId, playerId, room.roundId, playerId),
+
+  this.env.DB.prepare(`
+    UPDATE game_payouts
+    SET credited = 1
+    WHERE round_id = ? AND player_id = ? AND credited = 0
+  `).bind(room.roundId, playerId)
+]);
     room.status = "finished";
     room.winner = winner;
     room.finishedAt = Date.now();
