@@ -1424,10 +1424,7 @@ function updateBalances(data) {
 
     applyBalanceVisibility();
 
-    $("wallet-deposit-status")?.textContent =
-        Number(data.has_deposited) === 1 || data.has_deposited === true
-            ? "Deposited"
-            : "No deposit yet";
+    
 }
 
 function applyBalanceVisibility() {
