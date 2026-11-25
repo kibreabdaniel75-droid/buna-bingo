@@ -1238,6 +1238,7 @@ async function claimBingo() {
         if (!response.ok || !data.success) throw new Error(data.error || "Bingo claim rejected.");
         showToast("🎉 BINGO! You are the winner!", "success");
         await refreshGame();
+        await refreshAppBalance();
         historyLoaded = false;
     } catch (error) {
         showToast(error.message);
