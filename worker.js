@@ -52,6 +52,94 @@ function contactKeyboard() {
   };
 }
 
+// CREATE PROMO CODE - ADMIN ONLY
+async function createPromoCode(env, message) {
+  const user = message.from;
+  const chatId = message.chat.id;
+
+  if (
+    message.chat.type !== "private" ||
+    !env.ADMIN_TELEGRAM_ID ||
+    String(user.id) !== String(env.ADMIN_TELEGRAM_ID)
+  ) {
+    await tg(env, "sendMessage", {
+      chat_id: chatId,
+      text: "⛔ You are not authorized to create promo codes."
+    });
+    return;
+  }
+
+  const parts = message.text.trim().split(/\s+/);
+
+  if (parts.length !== 4) {
+    await tg(env, "sendMessage", {
+      chat_id: chatId,
+      text:
+        "Format:\n/createcode CODE BONUS LIMIT\n\n" +
+        "Example:\n/createcode BUNA20 20 100"
+    });
+    return;
+  }
+
+  const code = parts[1].toUpperCase();
+  const bonus = Number(parts[2]);
+  const limit = Number(parts[3]);
+
+  if (
+    !/^[A-Z0-9_-]{3,30}$/.test(code) ||
+    !Number.isFinite(bonus) ||
+    bonus <= 0 ||
+    bonus > 100000 ||
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > 100000
+  ) {
+    await tg(env, "sendMessage", {
+      chat_id: chatId,
+      text: "⚠️ Invalid code, bonus amount, or redemption limit."
+    });
+    return;
+  }
+
+  try {
+    await env.DB.prepare(`
+      INSERT INTO promo_codes (
+        code,
+        bonus_amount,
+        max_redemptions,
+        redeemed_count,
+        active,
+        created_by,
+        created_at
+      )
+      VALUES (?, ?, ?, 0, 1, ?, ?)
+    `).bind(
+      code,
+      bonus,
+      limit,
+      String(user.id),
+      Date.now()
+    ).run();
+
+    await tg(env, "sendMessage", {
+      chat_id: chatId,
+      text:
+        "✅ Promo code created!\n\n" +
+        "🎟 Code: " + code + "\n" +
+        "🎁 Bonus: " + bonus + " ETB\n" +
+        "👥 Maximum uses: " + limit + "\n\n" +
+        "Copy and post it in your channel whenever you want."
+    });
+  } catch (error) {
+    console.error("PROMO CREATION ERROR:", error);
+
+    await tg(env, "sendMessage", {
+      chat_id: chatId,
+      text: "⚠️ Could not create this code. It may already exist."
+    });
+  }
+}
+
 async function sendWelcome(env, chatId) {
   await tg(env, "sendMessage", {
     chat_id: chatId,
@@ -296,6 +384,15 @@ async function handleWebhook(env, update) {
   const chatId = message.chat.id;
   const user = message.from;
 
+  // ADMIN PROMO CODE COMMAND
+  if (
+    typeof message.text === "string" &&
+    message.text.trim().split(/\s+/)[0].split("@")[0] === "/createcode"
+  ) {
+    await createPromoCode(env, message);
+    return;
+  }
+
   if (
     typeof message.text === "string" &&
     message.text.startsWith("/start")
@@ -521,6 +618,183 @@ export default {
       } catch (error) {
         console.error("AUTH ERROR:", error);
         return json({ success: false, error: "Authentication failed" }, 500);
+      }
+    }
+
+    // REDEEM PROMO CODE
+    if (
+      url.pathname === "/api/promo/redeem" &&
+      request.method === "POST"
+    ) {
+      try {
+        const body = await request.json();
+        const user = await verifyTelegram(body.initData, env.BOT_TOKEN);
+
+        if (!user || !user.id) {
+          return json({
+            success: false,
+            error: "Invalid authentication"
+          }, 401);
+        }
+
+        const code = String(body.code || "").trim().toUpperCase();
+
+        if (!/^[A-Z0-9_-]{3,30}$/.test(code)) {
+          return json({
+            success: false,
+            error: "Please enter a valid promo code."
+          }, 400);
+        }
+
+        const player = await getOrCreatePlayer(env, user);
+        const telegramId = String(user.id);
+        const redemptionId = crypto.randomUUID();
+        const now = Date.now();
+
+        // The three statements run as one atomic D1 batch.
+        // A redemption is inserted only if the code is active,
+        // has remaining uses, and this player has not used it.
+        const results = await env.DB.batch([
+          env.DB.prepare(`
+            INSERT INTO promo_redemptions (
+              id,
+              code,
+              telegram_id,
+              bonus_amount,
+              redeemed_at
+            )
+            SELECT
+              ?,
+              promo.code,
+              ?,
+              promo.bonus_amount,
+              ?
+            FROM promo_codes AS promo
+            WHERE promo.code = ?
+              AND promo.active = 1
+              AND promo.redeemed_count < promo.max_redemptions
+              AND NOT EXISTS (
+                SELECT 1
+                FROM promo_redemptions AS old
+                WHERE old.code = promo.code
+                  AND old.telegram_id = ?
+              )
+              AND EXISTS (
+                SELECT 1
+                FROM players
+                WHERE telegram_id = ?
+              )
+          `).bind(
+            redemptionId,
+            telegramId,
+            now,
+            code,
+            telegramId,
+            telegramId
+          ),
+
+          env.DB.prepare(`
+            UPDATE promo_codes
+            SET redeemed_count = redeemed_count + 1
+            WHERE code = ?
+              AND EXISTS (
+                SELECT 1
+                FROM promo_redemptions
+                WHERE id = ?
+              )
+          `).bind(code, redemptionId),
+
+          env.DB.prepare(`
+            UPDATE players
+            SET bonus_balance = COALESCE(bonus_balance, 0) + (
+              SELECT bonus_amount
+              FROM promo_redemptions
+              WHERE id = ?
+            )
+            WHERE telegram_id = ?
+              AND EXISTS (
+                SELECT 1
+                FROM promo_redemptions
+                WHERE id = ?
+              )
+          `).bind(redemptionId, telegramId, redemptionId)
+        ]);
+
+        const inserted = results[0]?.meta?.changes || 0;
+
+        if (inserted !== 1) {
+          const existing = await env.DB.prepare(`
+            SELECT 1
+            FROM promo_redemptions
+            WHERE code = ? AND telegram_id = ?
+          `).bind(code, telegramId).first();
+
+          if (existing) {
+            return json({
+              success: false,
+              error: "You have already used this promo code."
+            }, 409);
+          }
+
+          const promo = await env.DB.prepare(`
+            SELECT active, redeemed_count, max_redemptions
+            FROM promo_codes
+            WHERE code = ?
+          `).bind(code).first();
+
+          if (!promo) {
+            return json({
+              success: false,
+              error: "This promo code does not exist."
+            }, 404);
+          }
+
+          if (!promo.active) {
+            return json({
+              success: false,
+              error: "This promo code is no longer active."
+            }, 400);
+          }
+
+          if (promo.redeemed_count >= promo.max_redemptions) {
+            return json({
+              success: false,
+              error: "This promo code has reached its limit."
+            }, 400);
+          }
+
+          return json({
+            success: false,
+            error: "Could not redeem this promo code. Please try again."
+          }, 400);
+        }
+
+        const updatedPlayer = await env.DB.prepare(`
+          SELECT main_balance, bonus_balance
+          FROM players
+          WHERE telegram_id = ?
+        `).bind(telegramId).first();
+
+        return json({
+          success: true,
+          message: "Promo code redeemed successfully!",
+          bonusAdded: Number(results[0].meta.changes ? (
+            await env.DB.prepare(`
+              SELECT bonus_amount
+              FROM promo_redemptions
+              WHERE id = ?
+            `).bind(redemptionId).first()
+          ).bonus_amount : 0),
+          mainBalance: Number(updatedPlayer.main_balance || 0),
+          bonusBalance: Number(updatedPlayer.bonus_balance || 0)
+        });
+
+      } catch (error) {
+        console.error("PROMO REDEMPTION ERROR:", error);
+        return json({
+          success: false,
+          error: "Could not redeem promo code."
+        }, 500);
       }
     }
 
