@@ -779,7 +779,23 @@ function updateProfile() {
     );
     applyBalanceVisibility();
 }
+async function refreshAppBalance() {
+    if (!tg?.initData) return;
 
+    const response = await fetch("/api/auth/telegram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData: tg.initData })
+    });
+
+    const data = await response.json();
+
+    if (data.success && data.player) {
+        player = data.player;
+        updateBalances(player);
+        updateProfile();
+    }
+    }
 // ---------- TAB NAVIGATION ----------
 function switchTab(tab) {
     activeTab = tab;
