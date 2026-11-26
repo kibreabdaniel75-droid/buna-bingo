@@ -1128,11 +1128,16 @@ export class BingoRoom {
       const reservations =
         await this.ctx.storage.get("reservations") || {};
 
-      return json({
-        success: true,
-        room,
-        reservedCards: Object.keys(reservations).map(Number)
-      });
+return json({
+    success: true,
+    room: {
+        ...room,
+        playersCount: new Set(
+            Object.values(reservations).map(r => r.playerId)
+        ).size
+    },
+    reservedCards: Object.keys(reservations).map(Number)
+});
     }
 
     if (request.method === "POST" && path === "/player-state") {
