@@ -376,8 +376,18 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
                     <div class="empty-message">You haven't reserved any cards yet.</div>
                 </div>
 
-                <button class="btn btn-bingo" id="bingo-button">🎉 BINGO!</button>
-                <div class="winner-message" id="winner-message"></div>
+                <button class="btn btn-bingo" id="bingo-button">BINGO!</button>
+                <div class="winner-message" id="winner-message">
+    <div style="font-size:55px;">🏆</div>
+    <h2>🎉 CONGRATULATIONS!</h2>
+    <p>ROUND WINNER</p>
+    <h3 id="winner-name">—</h3>
+    <div id="winner-prize">Prize: —</div>
+    <p>☕ BUNA BINGO</p>
+    <button class="btn btn-refresh" id="winner-return-button">
+        Return to Game
+    </button>
+                </div>
                 <button class="btn btn-refresh" id="game-refresh-button">🔄 Refresh Game</button>
             </div>
         </div>
@@ -1039,16 +1049,23 @@ async function loadRoom() {
             roomData.status === "countdown" ? "Game starting soon" :
             roomData.status === "playing" ? "Game in progress" :
             roomData.status === "finished" ? "Round finished" : roomData.status;
-        const winnerMessage = $("winner-message");
-        if (roomData.status === "finished") {
-            winnerMessage.classList.add("show");
-            winnerMessage.textContent = roomData.winner
-                ? "🏆 WINNER: " + (roomData.winner.name || "Player") + " 🎉"
-                : "😔 Game finished! No winner this round.";
-        } else {
-            winnerMessage.classList.remove("show");
-            winnerMessage.textContent = "";
-        }
+            winnerMessage = $("winner-message");
+
+if (roomData.status === "finished") {
+    winnerMessage.classList.add("show");
+
+    $("winner-name").textContent = roomData.winner
+        ? (roomData.winner.name || "Player")
+        : "No winner this round";
+
+    $("winner-prize").textContent = roomData.winner
+        ? "Prize amount will appear here"
+        : "😔 Better luck next round!";
+
+} else {
+    winnerMessage.classList.remove("show");
+}
+    
         renderNumberBoard();
         for (let i = 1; i <= 500; i++) renderCard(i);
         updateCountdown();
