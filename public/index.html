@@ -1478,9 +1478,10 @@ document.querySelectorAll("[data-language]").forEach(button => {
 });
 
 // ---------- PROMO REDEMPTION ----------
+
 async function bbRedeemPromo() {
-    const input = document.getElementById("promoCodeInput");
-    const button = document.getElementById("redeemPromoButton");
+    const input = document.getElementById("bb-promo-input");
+    const button = document.getElementById("bb-redeem-button");
 
     const code = input.value.trim();
 
@@ -1493,29 +1494,28 @@ async function bbRedeemPromo() {
     button.textContent = "Please wait...";
 
     try {
-        const response = await fetch(`${GAME_URL}api/promo/redeem`, {
+        const response = await fetch("/api/promo/redeem", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
                 code: code,
-                initData: Telegram.WebApp.initData
+                initData: tg.initData
             })
         });
 
         const data = await response.json();
 
-        if (!response.ok) {
+        if (!response.ok || !data.success) {
             throw new Error(data.error || "Invalid promo code");
         }
 
         alert(data.message || "Promo code redeemed!");
         input.value = "";
 
-        // Refresh wallet balance if your app has this function
-        if (typeof bbLoadWallet === "function") {
-            await bbLoadWallet();
+        if (typeof refreshAppBalance === "function") {
+            await refreshAppBalance();
         }
 
     } catch (error) {
@@ -1526,7 +1526,8 @@ async function bbRedeemPromo() {
             ? "ኮዱን ይጠቀሙ"
             : "Redeem Code";
     }
-    }
+}
+
 
 $("bb-redeem-button").addEventListener("click", bbRedeemPromo);
 $("bb-promo-input").addEventListener("keydown", e => { if (e.key === "Enter") bbRedeemPromo(); });
