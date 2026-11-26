@@ -1052,6 +1052,7 @@ $("withdraw-button").addEventListener("click", () => showToast("Withdrawal featu
 async function loadAdminWithdrawals() {
     const panel = $("admin-withdrawal-panel");
     const list = $("admin-withdrawal-list");
+    showToast("Panel: " + !!panel + " | List: " + !!list);
 
     try {
         const response = await fetch(
