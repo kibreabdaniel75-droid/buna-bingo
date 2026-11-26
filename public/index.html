@@ -635,7 +635,13 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
         <div id="transaction-list">
             <div class="transaction-empty">No transactions available yet.</div>
         </div>
-
+<!-- ADMIN WITHDRAWAL PANEL -->
+<div id="admin-withdrawal-panel" style="display:none; margin:15px;">
+    <div class="section-title">ADMIN — WITHDRAWAL REQUESTS</div>
+    <div id="admin-withdrawal-list">
+        <div class="transaction-empty">Loading requests...</div>
+    </div>
+</div>
         <div class="notice">
             Deposit, withdrawal, and transaction records will appear here
             when the wallet payment system is connected.
@@ -1010,7 +1016,57 @@ function switchTab(tab) {
     const nav = document.querySelector('.nav-item[data-tab="' + tab + '"]');
     if (nav) nav.classList.add("active");
     if (tab === "history") loadHistory();
-    if (tab === "wallet") updateBalances(player);
+    if (tab === "wallet") {
+    updateBalances(player);
+    loadAdminWithdrawals();
+    }
+    async function reviewAdminWithdrawal(requestId, action) {
+    if (action === "approve") {
+        const confirmed = confirm(
+            "Have you already sent the money to this player's account? Only approve after payment."
+        );
+
+        if (!confirmed) return;
+    } else {
+        const confirmed = confirm(
+            "Reject this withdrawal request and refund the player's balance?"
+        );
+
+        if (!confirmed) return;
+    }
+
+    try {
+        const response = await fetch(
+            GAME_URL + "api/wallet/withdrawal/review",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    initData: tg.initData,
+                    requestId: requestId,
+                    action: action
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            showToast(data.error || "Could not review withdrawal.");
+            return;
+        }
+
+        showToast(data.message);
+        loadAdminWithdrawals();
+        updateBalances(player);
+
+    } catch (error) {
+        console.error("WITHDRAWAL REVIEW:", error);
+        showToast("Connection error. Try again.");
+    }
+    }
     if (tab === "profile") updateProfile();
     if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
 }
@@ -1031,7 +1087,71 @@ $("main-balance-row").addEventListener("click", () => $("main-balance-row").clas
 $("bonus-balance-row").addEventListener("click", () => $("bonus-balance-row").classList.toggle("expanded"));
 $("deposit-button").addEventListener("click", () => showToast("Deposit feature is not connected yet."));
 $("withdraw-button").addEventListener("click", () => showToast("Withdrawal feature is not connected yet."));
+async function loadAdminWithdrawals() {
+    const panel = $("admin-withdrawal-panel");
+    const list = $("admin-withdrawal-list");
 
+    try {
+        const response = await fetch(
+            GAME_URL + "api/wallet/withdrawal/pending",
+            {
+                method: "GET",
+                headers: {
+                    "X-Telegram-Init-Data": tg.initData
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        // Keep the panel hidden for non-admin players.
+        if (!response.ok || !data.success) {
+            panel.style.display = "none";
+            return;
+        }
+
+        panel.style.display = "block";
+        list.replaceChildren();
+
+        if (!data.withdrawals || data.withdrawals.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "transaction-empty";
+            empty.textContent = "No pending withdrawal requests.";
+            list.appendChild(empty);
+            return;
+        }
+
+        data.withdrawals.forEach(item => {
+            const card = document.createElement("div");
+            card.className = "transaction-empty";
+            card.style.marginBottom = "10px";
+            card.style.padding = "12px";
+
+            const details = document.createElement("div");
+            details.textContent =
+                `${item.provider.toUpperCase()} | ${item.amount} ETB\n` +
+                `Name: ${item.accountName}\n` +
+                `Account: ${item.accountNumber}\n` +
+                `Reference: ${item.reference}`;
+
+            const approve = document.createElement("button");
+            approve.textContent = "Approve — paid";
+            approve.style.margin = "8px 5px 0 0";
+            approve.onclick = () => reviewAdminWithdrawal(item.id, "approve");
+
+            const reject = document.createElement("button");
+            reject.textContent = "Reject";
+            reject.style.marginTop = "8px";
+            reject.onclick = () => reviewAdminWithdrawal(item.id, "reject");
+
+            card.append(details, approve, reject);
+            list.appendChild(card);
+        });
+
+    } catch (error) {
+        console.error("ADMIN WITHDRAWALS:", error);
+    }
+                                         }
 // NOTE: profile-action handlers removed here — they are handled in the popup module below.
 document.querySelectorAll("[data-bank-action]").forEach(b => {
     b.addEventListener("click", () => showToast("Bank account setup is coming soon."));
