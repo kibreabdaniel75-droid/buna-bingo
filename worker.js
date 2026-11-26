@@ -8,7 +8,7 @@ const CARD_PRICE = 10;
 const MAX_CARDS = 4;
 const MAX_CARD_SLOTS = 500;
 const COUNTDOWN_SECONDS = 60;
-const CALL_INTERVAL_MS = 5000;
+const CALL_INTERVAL_MS = 3000;
 
 // TELEGRAM API
 async function tg(env, method, data) {
