@@ -1164,7 +1164,7 @@ async function loadRoom() {
             roomData.status === "countdown" ? "Game starting soon" :
             roomData.status === "playing" ? "Game in progress" :
             roomData.status === "finished" ? "Round finished" : roomData.status;
-            winnerMessage = $("winner-message");
+    winnerMessage = $("winner-message");
 
 if (roomData.status === "finished") {
     winnerMessage.classList.add("show");
@@ -1174,13 +1174,12 @@ if (roomData.status === "finished") {
         : "No winner this round";
 
     $("winner-prize").textContent = roomData.winner
-        ? "Prize amount will appear here"
+        ? "💰 Prize: " + formatMoney(roomData.prizePool * 0.8)
         : "😔 Better luck next round!";
 
 } else {
     winnerMessage.classList.remove("show");
 }
-    
         renderNumberBoard();
         for (let i = 1; i <= 500; i++) renderCard(i);
         updateCountdown();
