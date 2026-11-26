@@ -1064,7 +1064,7 @@ async function loadAdminWithdrawals() {
                 }
             }
         );
-
+showToast("Backend status: " + response.status);
         const data = await response.json();
 
         // Keep the panel hidden for non-admin players.
