@@ -1011,66 +1011,28 @@ function switchTab(tab) {
     activeTab = tab;
     document.querySelectorAll(".tab-page").forEach(p => p.classList.remove("active"));
     document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
+
     const page = $(tab + "-page");
     if (page) page.classList.add("active");
+
     const nav = document.querySelector('.nav-item[data-tab="' + tab + '"]');
     if (nav) nav.classList.add("active");
+
     if (tab === "history") loadHistory();
+
     if (tab === "wallet") {
-    updateBalances(player);
-    loadAdminWithdrawals();
-    }
-    async function reviewAdminWithdrawal(requestId, action) {
-    if (action === "approve") {
-        const confirmed = confirm(
-            "Have you already sent the money to this player's account? Only approve after payment."
-        );
-
-        if (!confirmed) return;
-    } else {
-        const confirmed = confirm(
-            "Reject this withdrawal request and refund the player's balance?"
-        );
-
-        if (!confirmed) return;
-    }
-
-    try {
-        const response = await fetch(
-            GAME_URL + "api/wallet/withdrawal/review",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    initData: tg.initData,
-                    requestId: requestId,
-                    action: action
-                })
-            }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-            showToast(data.error || "Could not review withdrawal.");
-            return;
-        }
-
-        showToast(data.message);
-        loadAdminWithdrawals();
         updateBalances(player);
+        loadAdminWithdrawals();
+    }
 
-    } catch (error) {
-        console.error("WITHDRAWAL REVIEW:", error);
-        showToast("Connection error. Try again.");
-    }
-    }
     if (tab === "profile") updateProfile();
+
     if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
 }
-document.querySelectorAll(".nav-item").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+
+document.querySelectorAll(".nav-item").forEach(b =>
+    b.addEventListener("click", () => switchTab(b.dataset.tab))
+);
 
 // ---------- WALLET INTERACTIONS ----------
 $("wallet-visibility").addEventListener("click", () => {
