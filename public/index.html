@@ -1168,6 +1168,7 @@ async function loadRoom() {
         const data = await response.json();
         if (!response.ok || !data.success) throw new Error(data.error || "Could not load round.");
         roomData = data.room;
+        $("player-count").textContent = roomData.playersCount ?? 0;
         reservedCards = new Set((data.reservedCards || []).map(Number));
         $("round-id").textContent = roomData.roundId ? roomData.roundId.slice(0, 8) : "—";
         prizePool.textContent = formatMoney(roomData.prizePool);
