@@ -504,8 +504,14 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
             </div>
 
         </div>
-    </div>
+        </div>
 </div>
+
+            </div>
+        </div>
+
+    <!-- HISTORY TAB -->
+
 
 
     <!-- HISTORY TAB -->
@@ -842,6 +848,8 @@ let countdownTimer = null;
 let historyData = [];
 let historyLoaded = false;
 let activeTab = "bingo";
+let dismissedWinnerRound = null 
+let returnedToLobby = false;
 let walletBalanceVisible = true;
 let profileBalanceVisible = false;
 
@@ -964,7 +972,10 @@ function updateScreens() {
     const lobby = $("lobby-screen");
     const game = $("game-screen");
     const status = roomData.status;
-    if (status === "playing" || status === "finished") {
+    if (status !== "finished") {
+    returnedToLobby = false;
+    }
+    if (status === "playing" || (status === "finished" && !returnedToLobby)) {
         lobby.classList.remove("active");
         game.classList.add("active");
         $("game-room-status").textContent = status === "playing" ? "🔥 GAME IN PROGRESS" : "🏆 ROUND FINISHED";
@@ -1165,9 +1176,10 @@ async function loadRoom() {
             roomData.status === "playing" ? "Game in progress" :
             roomData.status === "finished" ? "Round finished" : roomData.status;
     winnerMessage = $("winner-message");
-
-if (roomData.status === "finished") {
-    winnerMessage.classList.add("show");
+        if (roomData.status === "finished" && !returnedToLobby) {
+    if (dismissedWinnerRound !== roomData.roundId) {
+        winnerMessage.classList.add("show");
+    }
 
     $("winner-name").textContent = roomData.winner
         ? (roomData.winner.name || "Player")
@@ -1176,10 +1188,13 @@ if (roomData.status === "finished") {
     $("winner-prize").textContent = roomData.winner
         ? "💰 Prize: " + formatMoney(roomData.prizePool * 0.8)
         : "😔 Better luck next round!";
-
 } else {
     winnerMessage.classList.remove("show");
+    if (roomData.status !== "finished") {
+        dismissedWinnerRound = null;
+    }
 }
+
         renderNumberBoard();
         for (let i = 1; i <= 500; i++) renderCard(i);
         updateCountdown();
@@ -1393,6 +1408,18 @@ async function refreshApp() {
 }
 
 // ---------- BUTTON EVENTS ----------
+   $("winner-close-button").addEventListener("click", () => {
+    dismissedWinnerRound = roomData?.roundId || null;
+    $("winner-message").classList.remove("show");
+});
+$("winner-return-button").addEventListener("click", () => {
+    dismissedWinnerRound = roomData?.roundId || null;
+    returnedToLobby = true;
+    $("winner-message").classList.remove("show");
+    switchTab("bingo");
+    updateScreens();
+});
+
 $("reserve-button").addEventListener("click", reserveCards);
 $("refresh-button").addEventListener("click", refreshApp);
 $("game-refresh-button").addEventListener("click", refreshApp);
