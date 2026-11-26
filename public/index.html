@@ -1050,6 +1050,7 @@ $("bonus-balance-row").addEventListener("click", () => $("bonus-balance-row").cl
 $("deposit-button").addEventListener("click", () => showToast("Deposit feature is not connected yet."));
 $("withdraw-button").addEventListener("click", () => showToast("Withdrawal feature is not connected yet."));
 async function loadAdminWithdrawals() {
+    showToast("Admin withdrawal function called");
     const panel = $("admin-withdrawal-panel");
     const list = $("admin-withdrawal-list");
 
