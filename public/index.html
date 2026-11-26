@@ -126,14 +126,108 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
 .toast.show { display:block; }
 .toast.success { background:var(--green); color:white; }
 .toast.error { background:var(--red); color:white; }
-
 .winner-message {
-    display:none; text-align:center; padding:18px 12px; border:1px solid var(--gold);
-    border-radius:10px; color:var(--gold); font-weight:bold; margin-top:10px;
-    background:#181818; line-height:1.7;
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(9px);
 }
-.winner-message.show { display:block; }
 
+.winner-message.show {
+    display: flex;
+}
+.winner-overlay {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.winner-popup {
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: linear-gradient(145deg, #242016, #090909);
+    border: 2px solid #d6ad36;
+    border-radius: 25px;
+    color: white;
+    box-shadow: 0 0 35px rgba(214,173,54,0.25);
+}
+
+.winner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    font-size: 25px;
+    color: #f5cc55;
+    font-weight: bold;
+}
+.winner-header button {
+    background: none;
+    border: none;
+    color: #f5cc55;
+    font-size: 30px;
+    cursor: pointer;
+}
+
+.winner-content {
+    text-align: center;
+    padding: 28px 15px;
+}
+
+.winner-name {
+    display: inline-block;
+    padding: 12px 28px;
+    border-radius: 40px;
+    background: #8b6a19;
+    color: white;
+    font-size: 23px;
+    font-weight: bold;
+}
+
+.winner-prize {
+    margin: 25px 0;
+    color: #ffd700;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.winner-pattern {
+    margin: 15px 0;
+    color: #e6d8a7;
+    font-size: 16px;
+}
+
+.winner-card-preview {
+    margin: 20px auto;
+    padding: 20px;
+    background: #17140d;
+    border-radius: 15px;
+    max-width: 230px;
+}
+
+.winner-footer {
+    padding: 20px;
+    border-top: 1px solid #66501d;
+}
+
+#winner-return-button {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 40px;
+    background: linear-gradient(90deg, #a77b13, #f5cc55);
+    color: #100d05;
+    font-size: 19px;
+    font-weight: bold;
+}
 .lobby-status {
     text-align:center; color:var(--gold); font-size:13px; padding:12px 10px;
     margin:12px 15px 0; background:var(--bg-panel); border:1px solid #333; border-radius:10px;
@@ -377,21 +471,42 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
                 </div>
 
                 <button class="btn btn-bingo" id="bingo-button">BINGO!</button>
-                <div class="winner-message" id="winner-message">
-    <div style="font-size:55px;">🏆</div>
-    <h2>🎉 CONGRATULATIONS!</h2>
-    <p>ROUND WINNER</p>
-    <h3 id="winner-name">—</h3>
-    <div id="winner-prize">Prize: —</div>
-    <p>☕ BUNA BINGO</p>
-    <button class="btn btn-refresh" id="winner-return-button">
-        Return to Game
-    </button>
-                </div>
-                <button class="btn btn-refresh" id="game-refresh-button">🔄 Refresh Game</button>
+                
+<div class="winner-message" id="winner-message">
+    <div class="winner-overlay">
+        <div class="winner-popup">
+
+            <div class="winner-header">
+                🏁 GAME OVER 🏁
+                <button id="winner-close-button">×</button>
             </div>
+
+            <div class="winner-content">
+                <div class="winner-name" id="winner-name">—</div>
+
+                <div class="winner-prize" id="winner-prize">
+                    💰 Prize: —
+                </div>
+
+                <div class="winner-pattern" id="winner-pattern">
+                    🏆 Winning Pattern
+                </div>
+
+                <div class="winner-card-preview" id="winner-card">
+                    Winning Card
+                </div>
+            </div>
+
+            <div class="winner-footer">
+                <button id="winner-return-button">
+                    Back to Lobby
+                </button>
+            </div>
+
         </div>
     </div>
+</div>
+
 
     <!-- HISTORY TAB -->
     <div id="history-page" class="tab-page">
