@@ -439,7 +439,7 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
                     <div class="empty-message">You haven't reserved any cards yet.</div>
                 </div>
 
-                <button class="btn btn-refresh" id="refresh-button">🔄 Refresh Game</button>
+                
             </div>
         </div>
 
@@ -911,20 +911,24 @@ function updateProfile() {
 async function refreshAppBalance() {
     if (!tg?.initData) return;
 
-    const response = await fetch("/api/auth/telegram", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ initData: tg.initData })
-    });
+    try {
+        const response = await fetch("/api/auth/telegram", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ initData: tg.initData })
+        });
 
-    const data = await response.json();
+        const data = await response.json();
 
-    if (data.success && data.player) {
-        player = data.player;
-        updateBalances(player);
-        updateProfile();
+        if (data.success && data.player) {
+            player = data.player;
+            updateBalances(player);
+            updateProfile();
+        }
+    } catch (error) {
+        console.error("Balance update failed:", error);
     }
-    }
+}
 // ---------- TAB NAVIGATION ----------
 function switchTab(tab) {
     activeTab = tab;
@@ -1418,7 +1422,7 @@ $("winner-return-button").addEventListener("click", () => {
 
 $("reserve-button").addEventListener("click", reserveCards);
 $("refresh-button").addEventListener("click", refreshApp);
-$("game-refresh-button").addEventListener("click", refreshApp);
+
 bingoButton.addEventListener("click", claimBingo);
 $("history-refresh-button").addEventListener("click", loadHistory);
 
@@ -1429,7 +1433,12 @@ async function startApp() {
     const ok = await authenticate();
     if (!ok) return;
     await refreshGame();
-    refreshTimer = setInterval(() => { if (!busy) refreshGame(); }, 2000);
+    refreshTimer = setInterval(() => {
+    if (!busy) {
+        refreshGame();
+        refreshAppBalance();
+    }
+}, 2000);
 }
 startApp();
 
