@@ -551,6 +551,185 @@ async function verifyTelegram(initData, botToken) {
   }
 }
 
+// CREATE A PLAYER WITHDRAWAL REQUEST
+async function createWithdrawal(env, user, body) {
+  const telegramId = String(user.id);
+  const provider = String(body.provider || "").toLowerCase();
+  const accountName = String(body.accountName || "").trim();
+  const accountNumber = String(body.accountNumber || "").trim();
+  const amount = Number(body.amount);
+
+  if (!["telebirr", "cbe"].includes(provider)) {
+    return json({ success: false, error: "Choose Telebirr or CBE." }, 400);
+  }
+
+  if (
+    !Number.isFinite(amount) ||
+    amount < 1 ||
+    amount > 100000 ||
+    Math.round(amount * 100) !== amount * 100
+  ) {
+    return json({ success: false, error: "Invalid withdrawal amount." }, 400);
+  }
+
+  if (
+    accountName.length < 2 ||
+    accountName.length > 80 ||
+    accountNumber.length < 5 ||
+    accountNumber.length > 30
+  ) {
+    return json({ success: false, error: "Check your account details." }, 400);
+  }
+
+  const player = await getOrCreatePlayer(env, user);
+
+  if (!player.has_deposited) {
+    return json({
+      success: false,
+      error: "You must complete at least one successful deposit before withdrawing."
+    }, 403);
+  }
+
+  const amountCents = Math.round(amount * 100);
+  const id = crypto.randomUUID();
+  const reference = "WD-" + id.replace(/-/g, "").toUpperCase();
+  const now = Date.now();
+
+  const results = await env.DB.batch([
+    env.DB.prepare(`
+      UPDATE players
+      SET main_balance = COALESCE(main_balance, 0) - ?
+      WHERE telegram_id = ?
+        AND has_deposited = 1
+        AND COALESCE(main_balance, 0) >= ?
+    `).bind(amount, telegramId, amount),
+
+    env.DB.prepare(`
+      INSERT INTO wallet_transactions (
+        id, player_id, telegram_id, type, provider,
+        amount_cents, status, payment_reference,
+        account_name, account_number, created_at, updated_at
+      )
+      SELECT
+        ?, id, telegram_id, 'withdrawal', ?,
+        ?, 'pending', ?, ?, ?, ?, ?
+      FROM players
+      WHERE telegram_id = ?
+        AND changes() = 1
+    `).bind(
+      id,
+      provider,
+      amountCents,
+      reference,
+      accountName,
+      accountNumber,
+      now,
+      now,
+      telegramId
+    )
+  ]);
+
+  if (
+    results[0]?.meta?.changes !== 1 ||
+    results[1]?.meta?.changes !== 1
+  ) {
+    return json({
+      success: false,
+      error: "Insufficient main balance or withdrawal could not be created."
+    }, 400);
+  }
+
+  return json({
+    success: true,
+    message: "Withdrawal request submitted. Waiting for admin approval.",
+    reference,
+    status: "pending",
+    amount
+  });
+}
+
+// ADMIN APPROVES OR REJECTS A WITHDRAWAL
+async function reviewWithdrawal(env, adminId, body) {
+  const requestId = String(body.requestId || "").trim();
+  const action = String(body.action || "").toLowerCase();
+
+  if (!requestId || !["approve", "reject"].includes(action)) {
+    return json({ success: false, error: "Invalid request." }, 400);
+  }
+
+  const withdrawal = await env.DB.prepare(`
+    SELECT id, telegram_id, amount_cents, status
+    FROM wallet_transactions
+    WHERE id = ? AND type = 'withdrawal'
+  `).bind(requestId).first();
+
+  if (!withdrawal) {
+    return json({ success: false, error: "Withdrawal not found." }, 404);
+  }
+
+  if (withdrawal.status !== "pending") {
+    return json({ success: false, error: "This request was already reviewed." }, 409);
+  }
+
+  const now = Date.now();
+
+  if (action === "approve") {
+    const result = await env.DB.prepare(`
+      UPDATE wallet_transactions
+      SET status = 'successful',
+          provider_reference = ?,
+          updated_at = ?
+      WHERE id = ?
+        AND type = 'withdrawal'
+        AND status = 'pending'
+    `).bind(
+      "ADMIN-" + String(adminId),
+      now,
+      requestId
+    ).run();
+
+    if (result.meta?.changes !== 1) {
+      return json({ success: false, error: "Request already reviewed." }, 409);
+    }
+
+    return json({
+      success: true,
+      message: "Withdrawal approved.",
+      status: "successful"
+    });
+  }
+
+  const results = await env.DB.batch([
+    env.DB.prepare(`
+      UPDATE wallet_transactions
+      SET status = 'failed', updated_at = ?
+      WHERE id = ?
+        AND type = 'withdrawal'
+        AND status = 'pending'
+    `).bind(now, requestId),
+
+    env.DB.prepare(`
+      UPDATE players
+      SET main_balance = COALESCE(main_balance, 0) + ?
+      WHERE telegram_id = ?
+        AND changes() = 1
+    `).bind(
+      withdrawal.amount_cents / 100,
+      withdrawal.telegram_id
+    )
+  ]);
+
+  if (results[0]?.meta?.changes !== 1) {
+    return json({ success: false, error: "Request already reviewed." }, 409);
+  }
+
+  return json({
+    success: true,
+    message: "Withdrawal rejected. Player balance refunded.",
+    status: "failed"
+  });
+}
+
 // JSON RESPONSE
 function json(data, status = 200) {
   return Response.json(data, { status });
@@ -794,6 +973,116 @@ export default {
         return json({
           success: false,
           error: "Could not redeem promo code."
+        }, 500);
+      }
+    }
+
+async function getPendingWithdrawals(env) {
+  const result = await env.DB.prepare(`
+    SELECT
+      id,
+      telegram_id,
+      provider,
+      amount_cents,
+      account_name,
+      account_number,
+      payment_reference,
+      created_at
+    FROM wallet_transactions
+    WHERE type = 'withdrawal'
+      AND status = 'pending'
+    ORDER BY created_at ASC
+    LIMIT 100
+  `).all();
+
+  return json({
+    success: true,
+    withdrawals: (result.results || []).map(item => ({
+      id: item.id,
+      telegramId: item.telegram_id,
+      provider: item.provider,
+      amount: item.amount_cents / 100,
+      accountName: item.account_name,
+      accountNumber: item.account_number,
+      reference: item.payment_reference,
+      createdAt: item.created_at
+    }))
+  });
+}
+
+    // CREATE WITHDRAWAL REQUEST
+    if (
+      url.pathname === "/api/wallet/withdrawal/create" &&
+      request.method === "POST"
+    ) {
+      try {
+        const body = await request.json();
+        const user = await verifyTelegram(body.initData, env.BOT_TOKEN);
+
+        if (!user || !user.id) {
+          return json({ success: false, error: "Invalid authentication." }, 401);
+        }
+
+        return await createWithdrawal(env, user, body);
+      } catch (error) {
+        console.error("WITHDRAWAL ERROR:", error);
+        return json({
+          success: false,
+          error: "Could not create withdrawal request."
+        }, 500);
+      }
+    }
+// ADMIN: GET PENDING WITHDRAWALS
+if (
+  url.pathname === "/api/wallet/withdrawal/pending" &&
+  request.method === "GET"
+) {
+  try {
+    const initData = request.headers.get("X-Telegram-Init-Data");
+    const user = await verifyTelegram(initData, env.BOT_TOKEN);
+
+    if (
+      !user ||
+      !user.id ||
+      !env.ADMIN_TELEGRAM_ID ||
+      String(user.id) !== String(env.ADMIN_TELEGRAM_ID)
+    ) {
+      return json({ success: false, error: "Admin access only." }, 403);
+    }
+
+    return await getPendingWithdrawals(env);
+  } catch (error) {
+    console.error("PENDING WITHDRAWALS ERROR:", error);
+    return json({
+      success: false,
+      error: "Could not load pending withdrawals."
+    }, 500);
+  }
+}
+    // ADMIN WITHDRAWAL REVIEW
+    if (
+      url.pathname === "/api/wallet/withdrawal/review" &&
+      request.method === "POST"
+    ) {
+      try {
+        const body = await request.json();
+        const user = await verifyTelegram(body.initData, env.BOT_TOKEN);
+
+        if (
+          !user ||
+          !user.id ||
+          !env.ADMIN_TELEGRAM_ID ||
+          String(user.id) !== String(env.ADMIN_TELEGRAM_ID)
+        ) {
+          return json({ success: false, error: "Admin access only." }, 403);
+        }
+
+        return await reviewWithdrawal(env, user.id, body);
+      } catch (error) {
+        console.error("WITHDRAWAL REVIEW ERROR:", error);
+        return json({
+          success: false,
+          error: "Could not review withdrawal."
         }, 500);
       }
     }
