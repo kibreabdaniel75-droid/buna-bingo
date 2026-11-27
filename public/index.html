@@ -630,7 +630,28 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
                 <button class="wallet-action wallet-withdraw" id="withdraw-button">Withdraw</button>
             </div>
         </div>
+<div id="withdraw-form" style="display:none; margin:15px; padding:18px; background:#1e1e1e; border-radius:12px;">
+    <div class="section-title">WITHDRAW FUNDS</div>
 
+    <label>Amount (ETB)</label>
+    <input type="number" id="withdraw-amount" placeholder="Enter amount">
+
+    <label>Payment Method</label>
+    <select id="withdraw-provider">
+        <option value="telebirr">Telebirr</option>
+        <option value="cbe">CBE</option>
+    </select>
+
+    <label>Account Holder Name</label>
+    <input type="text" id="withdraw-account-name" placeholder="Full name">
+
+    <label>Account Number</label>
+    <input type="text" id="withdraw-account-number" placeholder="Phone or account number">
+
+    <button class="wallet-action wallet-withdraw" id="submit-withdrawal" style="width:100%; margin-top:15px;">
+        Submit Withdrawal
+    </button>
+</div>
         <div class="transaction-heading">RECENT TRANSACTIONS</div>
         <div id="transaction-list">
             <div class="transaction-empty">No transactions available yet.</div>
@@ -1048,7 +1069,67 @@ $("profile-visibility").addEventListener("click", () => {
 $("main-balance-row").addEventListener("click", () => $("main-balance-row").classList.toggle("expanded"));
 $("bonus-balance-row").addEventListener("click", () => $("bonus-balance-row").classList.toggle("expanded"));
 $("deposit-button").addEventListener("click", () => showToast("Deposit feature is not connected yet."));
-$("withdraw-button").addEventListener("click", () => showToast("Withdrawal feature is not connected yet."));
+$("withdraw-button").addEventListener("click", () => {
+    const form = $("withdraw-form");
+    form.style.display = form.style.display === "none" ? "block" : "none";
+});
+    $("submit-withdrawal").addEventListener("click", async () => {
+    const button = $("submit-withdrawal");
+
+    const amount = Number($("withdraw-amount").value);
+    const provider = $("withdraw-provider").value;
+    const accountName = $("withdraw-account-name").value.trim();
+    const accountNumber = $("withdraw-account-number").value.trim();
+
+    if (!amount || amount <= 0 || !accountName || !accountNumber) {
+        showToast("Please fill in all withdrawal details.");
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Submitting...";
+
+    try {
+        const response = await fetch(
+            GAME_URL + "api/wallet/withdrawal/create",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    initData: tg.initData,
+                    amount,
+                    provider,
+                    accountName,
+                    accountNumber
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            showToast(data.error || "Withdrawal request failed.");
+            return;
+        }
+
+        showToast("Withdrawal request submitted successfully!");
+
+        $("withdraw-amount").value = "";
+        $("withdraw-account-name").value = "";
+        $("withdraw-account-number").value = "";
+        $("withdraw-form").style.display = "none";
+
+        loadAdminWithdrawals();
+
+    } catch (error) {
+        showToast("Connection error. Please try again.");
+    } finally {
+        button.disabled = false;
+        button.textContent = "Submit Withdrawal";
+    }
+});
 async function loadAdminWithdrawals() {
     const panel = $("admin-withdrawal-panel");
     const list = $("admin-withdrawal-list");
