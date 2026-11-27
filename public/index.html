@@ -1052,7 +1052,6 @@ $("withdraw-button").addEventListener("click", () => showToast("Withdrawal featu
 async function loadAdminWithdrawals() {
     const panel = $("admin-withdrawal-panel");
     const list = $("admin-withdrawal-list");
-    showToast("Panel: " + !!panel + " | List: " + !!list);
 
     try {
         const response = await fetch(
@@ -1064,7 +1063,6 @@ async function loadAdminWithdrawals() {
                 }
             }
         );
-showToast("Backend status: " + response.status);
         const data = await response.json();
 
         // Keep the panel hidden for non-admin players.
@@ -1115,6 +1113,44 @@ showToast("Backend status: " + response.status);
         console.error("ADMIN WITHDRAWALS:", error);
     }
                                          }
+    async function reviewAdminWithdrawal(id, action) {
+    const message = action === "approve"
+        ? "Have you already sent the money to the player?"
+        : "Are you sure you want to reject this request?";
+
+    if (!confirm(message)) return;
+
+    try {
+        const response = await fetch(
+            GAME_URL + "api/wallet/withdrawal/review",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    initData: tg.initData,
+                    requestId: id,
+                    action: action
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            showToast(data.error || "Request failed.");
+            return;
+        }
+
+        showToast(data.message);
+        await loadAdminWithdrawals();
+
+    } catch (error) {
+        console.error("WITHDRAWAL REVIEW:", error);
+        showToast("Could not review withdrawal.");
+    }
+    }
 // NOTE: profile-action handlers removed here — they are handled in the popup module below.
 document.querySelectorAll("[data-bank-action]").forEach(b => {
     b.addEventListener("click", () => showToast("Bank account setup is coming soon."));
