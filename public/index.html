@@ -1702,9 +1702,11 @@ async function loadRoom() {
         updateScreens();
         return true;
     } catch (error) {
-        console.error("ROOM ERROR:", error);
+    console.error("ROOM ERROR:", error);
+    if (navigator.onLine) {
         showToast(error.message);
-        return false;
+    }
+    return false;
     }
 }
 
