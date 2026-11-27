@@ -1130,6 +1130,55 @@ $("copy-telebirr").addEventListener("click", async () => {
         showToast("Could not copy number.");
     }
 });
+    $("submit-deposit").addEventListener("click", async () => {
+    const button = $("submit-deposit");
+    const amount = Number($("deposit-amount").value);
+    const transactionId = $("deposit-transaction-id").value.trim();
+
+    if (!amount || amount < 100 || !transactionId) {
+        showToast("ዝቅተኛ መጠን: 100 ETB");
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Submitting...";
+
+    try {
+        const response = await fetch(
+            GAME_URL + "api/wallet/deposit/create",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    initData: tg.initData,
+                    amount,
+                    transactionId
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            showToast(data.error || "Deposit request failed.");
+            return;
+        }
+
+        showToast("Deposit request submitted. Waiting for verification.");
+
+        $("deposit-amount").value = "";
+        $("deposit-transaction-id").value = "";
+        $("deposit-form").style.display = "none";
+
+    } catch (error) {
+        showToast("Connection error. Please try again.");
+    } finally {
+        button.disabled = false;
+        button.textContent = "Submit Deposit";
+    }
+});
 $("withdraw-button").addEventListener("click", () => {
     const form = $("withdraw-form");
     form.style.display = form.style.display === "none" ? "block" : "none";
