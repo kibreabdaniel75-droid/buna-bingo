@@ -624,31 +624,6 @@ async function createDeposit(env, user, body) {
     amount
   });
                              }
-// CREATE DEPOSIT REQUEST
-if (
-  url.pathname === "/api/wallet/deposit/create" &&
-  request.method === "POST"
-) {
-  try {
-    const body = await request.json();
-    const user = await verifyTelegram(body.initData, env.BOT_TOKEN);
-
-    if (!user || !user.id) {
-      return json({
-        success: false,
-        error: "Invalid authentication."
-      }, 401);
-    }
-
-    return await createDeposit(env, user, body);
-  } catch (error) {
-    console.error("DEPOSIT ERROR:", error);
-    return json({
-      success: false,
-      error: "Could not create deposit request."
-    }, 500);
-  }
-}
 // CREATE A PLAYER WITHDRAWAL REQUEST
 async function createWithdrawal(env, user, body) {
   const telegramId = String(user.id);
@@ -1154,6 +1129,31 @@ if (
     return json({
       success: false,
       error: "Could not load pending withdrawals."
+    }, 500);
+  }
+}
+    // CREATE DEPOSIT REQUEST
+if (
+  url.pathname === "/api/wallet/deposit/create" &&
+  request.method === "POST"
+) {
+  try {
+    const body = await request.json();
+    const user = await verifyTelegram(body.initData, env.BOT_TOKEN);
+
+    if (!user || !user.id) {
+      return json({
+        success: false,
+        error: "Invalid authentication."
+      }, 401);
+    }
+
+    return await createDeposit(env, user, body);
+  } catch (error) {
+    console.error("DEPOSIT ERROR:", error);
+    return json({
+      success: false,
+      error: "Could not create deposit request."
     }, 500);
   }
 }
