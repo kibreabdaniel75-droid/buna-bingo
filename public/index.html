@@ -652,6 +652,53 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
         Submit Withdrawal
     </button>
 </div>
+        
+<div id="deposit-form" style="display:none; margin:15px; padding:22px 18px; background:#1e1e1e; border:1px solid #DAA520; border-radius:14px;">
+
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="section-title">ገንዘብ ማስገቢያ</div>
+        <button id="close-deposit" type="button" style="background:none; color:white; border:none; font-size:24px;">×</button>
+    </div>
+
+    <div style="margin:20px 0; text-align:center;">
+        <div style="color:#FFD700; font-size:14px;">Telebirr</div>
+
+        <div style="font-size:20px; font-weight:bold; margin:10px;">
+            0953345977
+            <button id="copy-telebirr" type="button">Copy</button>
+        </div>
+
+        <div style="color:white;">Account Name: Kibreab</div>
+    </div>
+
+    <label for="deposit-amount">Deposit Amount (ETB)</label>
+
+    <div style="color:#FFD700; font-size:13px; margin:6px 0 10px;">
+        ዝቅተኛ መጠን: 100 ETB
+    </div>
+
+    <input
+        type="number"
+        id="deposit-amount"
+        min="100"
+        step="0.01"
+        placeholder="Enter amount"
+    >
+
+    <label for="deposit-transaction-id">Transaction ID</label>
+
+    <input
+        type="text"
+        id="deposit-transaction-id"
+        placeholder="Enter Telebirr transaction ID"
+    >
+
+    <button class="wallet-action wallet-deposit" id="submit-deposit" type="button" style="width:100%; margin-top:18px;">
+        Submit Deposit
+    </button>
+
+</div>
+
         <div class="transaction-heading">RECENT TRANSACTIONS</div>
         <div id="transaction-list">
             <div class="transaction-empty">No transactions available yet.</div>
@@ -1068,7 +1115,21 @@ $("profile-visibility").addEventListener("click", () => {
 });
 $("main-balance-row").addEventListener("click", () => $("main-balance-row").classList.toggle("expanded"));
 $("bonus-balance-row").addEventListener("click", () => $("bonus-balance-row").classList.toggle("expanded"));
-$("deposit-button").addEventListener("click", () => showToast("Deposit feature is not connected yet."));
+$("deposit-button").addEventListener("click", () => {
+    $("deposit-form").style.display = "block";
+});
+
+$("close-deposit").addEventListener("click", () => {
+    $("deposit-form").style.display = "none";
+});
+
+$("copy-telebirr").addEventListener("click", async () => {
+    try {
+        await navigator.clipboard.writeText("0953345977");
+    } catch (error) {
+        showToast("Could not copy number.");
+    }
+});
 $("withdraw-button").addEventListener("click", () => {
     const form = $("withdraw-form");
     form.style.display = form.style.display === "none" ? "block" : "none";
