@@ -1096,8 +1096,9 @@ function switchTab(tab) {
     if (tab === "history") loadHistory();
 
     if (tab === "wallet") {
-        updateBalances(player);
-        loadAdminWithdrawals();
+    updateBalances(player);
+    loadAdminWithdrawals();
+    loadAdminDeposits();
     }
 
     if (tab === "profile") updateProfile();
@@ -1347,6 +1348,111 @@ async function loadAdminWithdrawals() {
     } catch (error) {
         console.error("WITHDRAWAL REVIEW:", error);
         showToast("Could not review withdrawal.");
+    }
+    }
+    // ---------- ADMIN DEPOSIT REQUESTS ----------
+async function loadAdminDeposits() {
+    const panel = $("admin-deposit-panel");
+    const list = $("admin-deposit-list");
+
+    try {
+        const response = await fetch(
+            GAME_URL + "api/wallet/deposit/pending",
+            {
+                method: "GET",
+                headers: {
+                    "X-Telegram-Init-Data": tg.initData
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            panel.style.display = "none";
+            return;
+        }
+
+        panel.style.display = "block";
+        list.replaceChildren();
+
+        if (!data.deposits || data.deposits.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "transaction-empty";
+            empty.textContent = "No pending deposit requests.";
+            list.appendChild(empty);
+            return;
+        }
+
+        data.deposits.forEach(item => {
+            const card = document.createElement("div");
+            card.className = "transaction-empty";
+            card.style.marginBottom = "10px";
+            card.style.padding = "12px";
+
+            const details = document.createElement("div");
+            details.style.whiteSpace = "pre-line";
+            details.textContent =
+                `${item.provider.toUpperCase()} | ${item.amount} ETB\n` +
+                `Player ID: ${item.telegramId}\n` +
+                `Transaction ID: ${item.transactionId}\n` +
+                `Reference: ${item.reference}`;
+
+            const approve = document.createElement("button");
+            approve.textContent = "Approve — verified";
+            approve.style.margin = "8px 5px 0 0";
+            approve.onclick = () => reviewAdminDeposit(item.id, "approve");
+
+            const reject = document.createElement("button");
+            reject.textContent = "Reject";
+            reject.style.marginTop = "8px";
+            reject.onclick = () => reviewAdminDeposit(item.id, "reject");
+
+            card.append(details, approve, reject);
+            list.appendChild(card);
+        });
+
+    } catch (error) {
+        console.error("ADMIN DEPOSITS:", error);
+    }
+    }
+    async function reviewAdminDeposit(id, action) {
+    const message = action === "approve"
+        ? "Have you verified the Telebirr payment and transaction ID?"
+        : "Are you sure you want to reject this deposit?";
+
+    if (!confirm(message)) return;
+
+    try {
+        const response = await fetch(
+            GAME_URL + "api/wallet/deposit/review",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    initData: tg.initData,
+                    requestId: id,
+                    action: action
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            showToast(data.error || "Deposit review failed.");
+            return;
+        }
+
+        showToast(data.message);
+        await loadAdminDeposits();
+        await refreshAppBalance();
+
+    } catch (error) {
+        console.error("DEPOSIT REVIEW:", error);
+        showToast("Could not review deposit.");
     }
     }
 // NOTE: profile-action handlers removed here — they are handled in the popup module below.
