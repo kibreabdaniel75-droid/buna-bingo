@@ -802,7 +802,86 @@ async function reviewWithdrawal(env, adminId, body) {
     status: "failed"
   });
 }
+// ADMIN APPROVES OR REJECTS A DEPOSIT
+async function reviewDeposit(env, body) {
+  const requestId = String(body.requestId || "").trim();
+  const action = String(body.action || "").toLowerCase();
 
+  if (!requestId || !["approve", "reject"].includes(action)) {
+    return json({ success: false, error: "Invalid request." }, 400);
+  }
+
+  const deposit = await env.DB.prepare(`
+    SELECT id, telegram_id, amount_cents, status
+    FROM wallet_transactions
+    WHERE id = ? AND type = 'deposit'
+  `).bind(requestId).first();
+
+  if (!deposit) {
+    return json({ success: false, error: "Deposit not found." }, 404);
+  }
+
+  if (deposit.status !== "pending") {
+    return json({ success: false, error: "This request was already reviewed." }, 409);
+  }
+
+  const now = Date.now();
+
+  if (action === "approve") {
+    const results = await env.DB.batch([
+      env.DB.prepare(`
+        UPDATE wallet_transactions
+        SET status = 'successful', updated_at = ?
+        WHERE id = ?
+          AND type = 'deposit'
+          AND status = 'pending'
+          AND EXISTS (
+            SELECT 1 FROM players
+            WHERE telegram_id = ?
+          )
+      `).bind(now, requestId, deposit.telegram_id),
+
+      env.DB.prepare(`
+        UPDATE players
+        SET main_balance = COALESCE(main_balance, 0) + ?,
+            has_deposited = 1
+        WHERE telegram_id = ?
+          AND changes() = 1
+      `).bind(deposit.amount_cents / 100, deposit.telegram_id)
+    ]);
+
+    if (results[0]?.meta?.changes !== 1) {
+      return json({
+        success: false,
+        error: "Request already reviewed or player not found."
+      }, 409);
+    }
+
+    return json({
+      success: true,
+      message: "Deposit approved.",
+      status: "successful"
+    });
+  }
+
+  const result = await env.DB.prepare(`
+    UPDATE wallet_transactions
+    SET status = 'failed', updated_at = ?
+    WHERE id = ?
+      AND type = 'deposit'
+      AND status = 'pending'
+  `).bind(now, requestId).run();
+
+  if (result.meta?.changes !== 1) {
+    return json({ success: false, error: "Request already reviewed." }, 409);
+  }
+
+  return json({
+    success: true,
+    message: "Deposit rejected.",
+    status: "failed"
+  });
+}
 // JSON RESPONSE
 function json(data, status = 200) {
   return Response.json(data, { status });
@@ -1082,7 +1161,36 @@ async function getPendingWithdrawals(env) {
     }))
   });
 }
+async function getPendingDeposits(env) {
+  const result = await env.DB.prepare(`
+    SELECT
+      id,
+      telegram_id,
+      provider,
+      amount_cents,
+      payment_reference,
+      provider_reference,
+      created_at
+    FROM wallet_transactions
+    WHERE type = 'deposit'
+      AND status = 'pending'
+    ORDER BY created_at ASC
+    LIMIT 100
+  `).all();
 
+  return json({
+    success: true,
+    deposits: (result.results || []).map(item => ({
+      id: item.id,
+      telegramId: item.telegram_id,
+      provider: item.provider,
+      amount: item.amount_cents / 100,
+      reference: item.payment_reference,
+      transactionId: item.provider_reference,
+      createdAt: item.created_at
+    }))
+  });
+}
     // CREATE WITHDRAWAL REQUEST
     if (
       url.pathname === "/api/wallet/withdrawal/create" &&
@@ -1129,6 +1237,33 @@ if (
     return json({
       success: false,
       error: "Could not load pending withdrawals."
+    }, 500);
+  }
+}
+    // ADMIN: GET PENDING DEPOSITS
+if (
+  url.pathname === "/api/wallet/deposit/pending" &&
+  request.method === "GET"
+) {
+  try {
+    const initData = request.headers.get("X-Telegram-Init-Data");
+    const user = await verifyTelegram(initData, env.BOT_TOKEN);
+
+    if (
+      !user ||
+      !user.id ||
+      !env.ADMIN_TELEGRAM_ID ||
+      String(user.id) !== String(env.ADMIN_TELEGRAM_ID)
+    ) {
+      return json({ success: false, error: "Admin access only." }, 403);
+    }
+
+    return await getPendingDeposits(env);
+  } catch (error) {
+    console.error("PENDING DEPOSITS ERROR:", error);
+    return json({
+      success: false,
+      error: "Could not load pending deposits."
     }, 500);
   }
 }
@@ -1184,7 +1319,33 @@ if (
         }, 500);
       }
     }
+// ADMIN DEPOSIT REVIEW
+if (
+  url.pathname === "/api/wallet/deposit/review" &&
+  request.method === "POST"
+) {
+  try {
+    const body = await request.json();
+    const user = await verifyTelegram(body.initData, env.BOT_TOKEN);
 
+    if (
+      !user ||
+      !user.id ||
+      !env.ADMIN_TELEGRAM_ID ||
+      String(user.id) !== String(env.ADMIN_TELEGRAM_ID)
+    ) {
+      return json({ success: false, error: "Admin access only." }, 403);
+    }
+
+    return await reviewDeposit(env, body);
+  } catch (error) {
+    console.error("DEPOSIT REVIEW ERROR:", error);
+    return json({
+      success: false,
+      error: "Could not review deposit."
+    }, 500);
+  }
+}
     // PUBLIC ROUND STATUS
     if (url.pathname === "/api/room" && request.method === "GET") {
       const id = env.BINGO_ROOM.idFromName("main");
