@@ -652,18 +652,18 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
         Submit Withdrawal
     </button>
 </div>
-        
-<div id="deposit-form" style="display:none; margin:15px; padding:22px 18px; background:#1e1e1e; border:1px solid #DAA520; border-radius:14px;">
+ 
+<div id="deposit-form" style="display:none; margin:15px; padding:24px 20px; background:#1e1e1e; border:1px solid #DAA520; border-radius:16px; box-sizing:border-box;">
 
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <div class="section-title">ገንዘብ ማስገቢያ</div>
         <button id="close-deposit" type="button" style="background:none; color:white; border:none; font-size:24px;">×</button>
     </div>
 
-    <div style="margin:20px 0; text-align:center;">
-        <div style="color:#FFD700; font-size:14px;">Telebirr</div>
+    <div style="margin:24px 0; text-align:center;">
+        <div style="color:#FFD700; font-size:15px;">Telebirr</div>
 
-        <div style="font-size:20px; font-weight:bold; margin:10px;">
+        <div style="font-size:22px; font-weight:bold; margin:12px 0;">
             0953345977
             <button id="copy-telebirr" type="button">Copy</button>
         </div>
@@ -671,33 +671,45 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
         <div style="color:white;">Account Name: Kibreab</div>
     </div>
 
-    <label for="deposit-amount">Deposit Amount (ETB)</label>
+    <div style="margin-bottom:18px;">
+        <label for="deposit-amount" style="display:block; color:white; margin-bottom:8px;">
+            Deposit Amount (ETB)
+        </label>
 
-    <div style="color:#FFD700; font-size:13px; margin:6px 0 10px;">
-        ዝቅተኛ መጠን: 100 ETB
+        <div style="color:#FFD700; font-size:13px; margin-bottom:10px;">
+            ዝቅተኛ መጠን: 100 ETB
+        </div>
+
+        <input
+            type="number"
+            id="deposit-amount"
+            min="100"
+            step="0.01"
+            placeholder="Enter amount"
+            style="display:block; width:100%; box-sizing:border-box; padding:14px; border-radius:9px; font-size:16px; margin:0;"
+        >
     </div>
 
-    <input
-        type="number"
-        id="deposit-amount"
-        min="100"
-        step="0.01"
-        placeholder="Enter amount"
-    >
+    <div style="margin-bottom:20px;">
+        <label for="deposit-transaction-id" style="display:block; color:white; margin-bottom:8px;">
+            Transaction ID
+        </label>
 
-    <label for="deposit-transaction-id">Transaction ID</label>
+        <input
+            type="text"
+            id="deposit-transaction-id"
+            placeholder="Enter Telebirr transaction ID"
+            style="display:block; width:100%; box-sizing:border-box; padding:14px; border-radius:9px; font-size:16px; margin:0;"
+        >
+    </div>
 
-    <input
-        type="text"
-        id="deposit-transaction-id"
-        placeholder="Enter Telebirr transaction ID"
-    >
-
-    <button class="wallet-action wallet-deposit" id="submit-deposit" type="button" style="width:100%; margin-top:18px;">
+    <button class="wallet-action wallet-deposit" id="submit-deposit" type="button" style="width:100%; margin-top:5px;">
         Submit Deposit
     </button>
 
 </div>
+       
+
 
         <div class="transaction-heading">RECENT TRANSACTIONS</div>
         <div id="transaction-list">
