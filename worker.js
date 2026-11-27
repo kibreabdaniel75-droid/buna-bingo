@@ -550,7 +550,105 @@ async function verifyTelegram(initData, botToken) {
     return null;
   }
 }
+// CREATE A PLAYER DEPOSIT REQUEST
+async function createDeposit(env, user, body) {
+  const telegramId = String(user.id);
+  const amount = Number(body.amount);
+  const transactionId = String(body.transactionId || "").trim();
 
+  if (
+    !Number.isFinite(amount) ||
+    amount < 100 ||
+    amount > 100000 ||
+    Math.round(amount * 100) !== amount * 100
+  ) {
+    return json({
+      success: false,
+      error: "ዝቅተኛ መጠን: 100 ETB"
+    }, 400);
+  }
+
+  if (
+    transactionId.length < 5 ||
+    transactionId.length > 100
+  ) {
+    return json({
+      success: false,
+      error: "Please enter a valid Telebirr transaction ID."
+    }, 400);
+  }
+
+  const existing = await env.DB.prepare(`
+    SELECT id
+    FROM wallet_transactions
+    WHERE type = 'deposit'
+      AND provider_reference = ?
+  `).bind(transactionId).first();
+
+  if (existing) {
+    return json({
+      success: false,
+      error: "This transaction ID has already been submitted."
+    }, 409);
+  }
+
+  const player = await getOrCreatePlayer(env, user);
+  const id = crypto.randomUUID();
+  const reference = "DP-" + id.replace(/-/g, "").toUpperCase();
+  const now = Date.now();
+
+  await env.DB.prepare(`
+    INSERT INTO wallet_transactions (
+      id, player_id, telegram_id, type, provider,
+      amount_cents, status, payment_reference,
+      provider_reference, created_at, updated_at
+    )
+    VALUES (?, ?, ?, 'deposit', 'telebirr',
+            ?, 'pending', ?, ?, ?, ?)
+  `).bind(
+    id,
+    player.id,
+    telegramId,
+    Math.round(amount * 100),
+    reference,
+    transactionId,
+    now,
+    now
+  ).run();
+
+  return json({
+    success: true,
+    message: "Deposit request submitted. Waiting for verification.",
+    reference,
+    status: "pending",
+    amount
+  });
+                             }
+// CREATE DEPOSIT REQUEST
+if (
+  url.pathname === "/api/wallet/deposit/create" &&
+  request.method === "POST"
+) {
+  try {
+    const body = await request.json();
+    const user = await verifyTelegram(body.initData, env.BOT_TOKEN);
+
+    if (!user || !user.id) {
+      return json({
+        success: false,
+        error: "Invalid authentication."
+      }, 401);
+    }
+
+    return await createDeposit(env, user, body);
+  } catch (error) {
+    console.error("DEPOSIT ERROR:", error);
+    return json({
+      success: false,
+      error: "Could not create deposit request."
+    }, 500);
+  }
+}
 // CREATE A PLAYER WITHDRAWAL REQUEST
 async function createWithdrawal(env, user, body) {
   const telegramId = String(user.id);
