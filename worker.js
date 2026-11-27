@@ -586,7 +586,7 @@ async function createWithdrawal(env, user, body) {
   if (!player.has_deposited) {
     return json({
       success: false,
-      error: "You must complete at least one successful deposit before withdrawing."
+      error: "ለማውጣት  ቢያንስ አንድ ጊዜ ዲፖዚት ማድረግ አለብዎት!"
     }, 403);
   }
 
