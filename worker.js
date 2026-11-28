@@ -882,6 +882,42 @@ async function reviewDeposit(env, body) {
     status: "failed"
   });
 }
+
+// GET PLAYER'S RECENT WALLET TRANSACTIONS
+async function getRecentTransactions(env, user) {
+  const telegramId = String(user.id);
+
+  const result = await env.DB.prepare(`
+    SELECT
+      id,
+      type,
+      provider,
+      amount_cents,
+      status,
+      payment_reference,
+      created_at,
+      updated_at
+    FROM wallet_transactions
+    WHERE telegram_id = ?
+    ORDER BY created_at DESC
+    LIMIT 10
+  `).bind(telegramId).all();
+
+  return json({
+    success: true,
+    transactions: (result.results || []).map(item => ({
+      id: item.id,
+      type: item.type,
+      provider: item.provider,
+      amount: item.amount_cents / 100,
+      status: item.status,
+      reference: item.payment_reference,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at
+    }))
+  });
+}
+
 // JSON RESPONSE
 function json(data, status = 200) {
   return Response.json(data, { status });
@@ -1191,6 +1227,35 @@ async function getPendingDeposits(env) {
     }))
   });
 }
+    
+// PLAYER: GET RECENT WALLET TRANSACTIONS
+if (
+  url.pathname === "/api/wallet/transactions" &&
+  request.method === "POST"
+) {
+  try {
+    const body = await request.json();
+    const user = await verifyTelegram(body.initData, env.BOT_TOKEN);
+
+    if (!user || !user.id) {
+      return json({
+        success: false,
+        error: "Invalid authentication."
+      }, 401);
+    }
+
+    return await getRecentTransactions(env, user);
+
+  } catch (error) {
+    console.error("RECENT TRANSACTIONS ERROR:", error);
+
+    return json({
+      success: false,
+      error: "Could not load recent transactions."
+    }, 500);
+  }
+}
+
     // CREATE WITHDRAWAL REQUEST
     if (
       url.pathname === "/api/wallet/withdrawal/create" &&
