@@ -756,7 +756,7 @@ async function reviewWithdrawal(env, adminId, body) {
         AND type = 'withdrawal'
         AND status = 'pending'
     `).bind(
-      "ADMIN-" + String(adminId),
+      "ADMIN-" + String(requestId),
       now,
       requestId
     ).run();
