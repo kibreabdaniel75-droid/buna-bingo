@@ -55,7 +55,11 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
 .current-label { color:var(--text-muted); font-size:12px; }
 .current-number { font-size:46px; font-weight:bold; color:var(--gold); margin-top:4px; }
 .game-status { font-size:12px; color:var(--text-muted); margin-top:5px; }
-.number-board { display:flex; flex-direction:column; gap:4px; }
+.number-board {
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+}
 
 .number-column {
     display:grid;
@@ -72,7 +76,6 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
     justify-content:center;
     border-radius:5px;
     font-size:12px;
-    padding:7px 2px;
 }
 
 .called-number {
@@ -92,6 +95,10 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
     border-color:var(--gold);
     font-weight:bold;
 }
+
+.number-letter { background:var(--gold); color:#000; font-weight:bold; text-align:center; padding:7px 2px; border-radius:5px; }
+.called-number { background:#292929; border:1px solid #444; border-radius:4px; text-align:center; padding:6px 1px; font-size:11px; color:#aaa; }
+.called-number.active { background:var(--gold); color:#000; border-color:var(--gold); font-weight:bold; }
 
 .latest-calls { display:flex; flex-wrap:wrap; gap:5px; margin-top:10px; }
 .latest-ball { background:#333; color:var(--gold); border:1px solid var(--gold-dark); border-radius:50%; width:34px; height:34px; display:flex; justify-content:center; align-items:center; font-size:10px; font-weight:bold; }
@@ -134,18 +141,38 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
 .my-cards-header { font-size:15px; font-weight:bold; color:var(--gold); margin:12px 0 9px; }
 
 .my-bingo-card { background:#181818; border:1px solid #555; border-radius:10px; padding:9px; margin-bottom:12px; }
+    /* COMPACT TWO-COLUMN BINGO CARDS */
 #my-bingo-cards {
     display:grid;
     grid-template-columns:repeat(2, minmax(0, 1fr));
     gap:7px;
 }
 
-#my-bingo-cards .my-bingo-card { min-width:0; margin-bottom:0; padding:6px; }
-#my-bingo-cards .my-bingo-card h4 { font-size:10px; margin-bottom:5px; }
-#my-bingo-cards .bingo-grid { gap:2px; }
-#my-bingo-cards .bingo-cell { min-height:0; aspect-ratio:1; font-size:11px; border-radius:3px; }
-#my-bingo-cards .bingo-cell.heading { min-height:0; }
+#my-bingo-cards .my-bingo-card {
+    min-width:0;
+    margin-bottom:0;
+    padding:6px;
+}
 
+#my-bingo-cards .my-bingo-card h4 {
+    font-size:10px;
+    margin-bottom:5px;
+}
+
+#my-bingo-cards .bingo-grid {
+    gap:2px;
+}
+
+#my-bingo-cards .bingo-cell {
+    min-height:0;
+    aspect-ratio:1;
+    font-size:11px;
+    border-radius:3px;
+}
+
+#my-bingo-cards .bingo-cell.heading {
+    min-height:0;
+}
 .my-bingo-card h4 { color:var(--gold); font-size:12px; margin-bottom:8px; }
 .bingo-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; }
 .bingo-cell {
@@ -169,7 +196,6 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
 .toast.show { display:block; }
 .toast.success { background:var(--green); color:white; }
 .toast.error { background:var(--red); color:white; }
-
 .winner-message {
     display: none;
     position: fixed;
@@ -181,31 +207,97 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
     background: rgba(0, 0, 0, 0.82);
     backdrop-filter: blur(9px);
 }
-.winner-message.show { display: flex; }
-.winner-overlay { width: 100%; display: flex; justify-content: center; align-items: center; }
+
+.winner-message.show {
+    display: flex;
+}
+.winner-overlay {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
 .winner-popup {
-    width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
     background: linear-gradient(145deg, #242016, #090909);
-    border: 2px solid #d6ad36; border-radius: 25px; color: white;
+    border: 2px solid #d6ad36;
+    border-radius: 25px;
+    color: white;
     box-shadow: 0 0 35px rgba(214,173,54,0.25);
 }
 
-.winner-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; font-size: 25px; color: #f5cc55; font-weight: bold; }
-.winner-header button { background: none; border: none; color: #f5cc55; font-size: 30px; cursor: pointer; }
-.winner-content { text-align: center; padding: 28px 15px; }
-.winner-name { display: inline-block; padding: 12px 28px; border-radius: 40px; background: #8b6a19; color: white; font-size: 23px; font-weight: bold; }
-.winner-prize { margin: 25px 0; color: #ffd700; font-size: 28px; font-weight: bold; }
-.winner-pattern { margin: 15px 0; color: #e6d8a7; font-size: 16px; }
-.winner-card-preview { margin: 20px auto; padding: 20px; background: #17140d; border-radius: 15px; max-width: 230px; }
-.winner-footer { padding: 20px; border-top: 1px solid #66501d; }
-
-#winner-return-button {
-    width: 100%; padding: 18px; border: none; border-radius: 40px;
-    background: linear-gradient(90deg, #a77b13, #f5cc55);
-    color: #100d05; font-size: 19px; font-weight: bold;
+.winner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    font-size: 25px;
+    color: #f5cc55;
+    font-weight: bold;
+}
+.winner-header button {
+    background: none;
+    border: none;
+    color: #f5cc55;
+    font-size: 30px;
+    cursor: pointer;
 }
 
+.winner-content {
+    text-align: center;
+    padding: 28px 15px;
+}
+
+.winner-name {
+    display: inline-block;
+    padding: 12px 28px;
+    border-radius: 40px;
+    background: #8b6a19;
+    color: white;
+    font-size: 23px;
+    font-weight: bold;
+}
+
+.winner-prize {
+    margin: 25px 0;
+    color: #ffd700;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.winner-pattern {
+    margin: 15px 0;
+    color: #e6d8a7;
+    font-size: 16px;
+}
+
+.winner-card-preview {
+    margin: 20px auto;
+    padding: 20px;
+    background: #17140d;
+    border-radius: 15px;
+    max-width: 230px;
+}
+
+.winner-footer {
+    padding: 20px;
+    border-top: 1px solid #66501d;
+}
+
+#winner-return-button {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 40px;
+    background: linear-gradient(90deg, #a77b13, #f5cc55);
+    color: #100d05;
+    font-size: 19px;
+    font-weight: bold;
+}
 .lobby-status {
     text-align:center; color:var(--gold); font-size:13px; padding:12px 10px;
     margin:12px 15px 0; background:var(--bg-panel); border:1px solid #333; border-radius:10px;
@@ -281,7 +373,7 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
 .wallet-action:active { opacity:.8; }
 
 .transaction-heading { color:var(--gold); font-size:14px; font-weight:bold; padding:8px 18px 12px; letter-spacing:.5px; }
-.transaction-empty { margin:0 15px 10px; padding:14px 12px; text-align:center; border:1px solid #333; border-radius:10px; background:#181818; color:var(--text-muted); font-size:12px; }
+.transaction-empty { margin:0 15px; padding:22px 12px; text-align:center; border-top:1px solid #333; color:var(--text-muted); font-size:12px; }
 
 .profile-header-card { margin:12px 15px 0; border:1px solid #444; background:#080808; }
 .profile-player { display:flex; align-items:center; gap:15px; padding:22px 17px; }
@@ -328,6 +420,7 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
     .profile-player-name { font-size:19px; }
 }
 
+/* ============ BUNA POPUP MODALS ============ */
 .bb-modal {
     display:none; position:fixed; inset:0; z-index:999;
     background:rgba(0,0,0,.85); justify-content:center; align-items:center; padding:20px;
@@ -373,13 +466,14 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
 
     <!-- BINGO TAB -->
     <div id="bingo-page" class="tab-page active">
-        <div class="info-bar">
-            <div>Round <span class="highlight" id="round-id">—</span></div>
-            <div>Winning <span class="highlight" id="prize-pool">—</span></div>
-            <div>Players <span class="highlight" id="player-count">0</span></div>
-            <div>Stake <span class="highlight">10 ETB</span></div>
-        </div>
 
+        
+<div class="info-bar">
+    <div>Round <span class="highlight" id="round-id">—</span></div>
+    <div>Winning <span class="highlight" id="prize-pool">—</span></div>
+    <div>Players <span class="highlight" id="player-count">0</span></div>
+    <div>Stake <span class="highlight">10 ETB</span></div>
+</div>
         <div class="summary-cards">
             <div class="summary-card">
                 <span class="summary-title">Main Balance</span>
@@ -415,6 +509,8 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
                 <div id="lobby-my-cards">
                     <div class="empty-message">You haven't reserved any cards yet.</div>
                 </div>
+
+                
             </div>
         </div>
 
@@ -446,35 +542,51 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
                 </div>
 
                 <button class="btn btn-bingo" id="bingo-button">BINGO!</button>
+                
+<div class="winner-message" id="winner-message">
+    <div class="winner-overlay">
+        <div class="winner-popup">
 
-                <div class="winner-message" id="winner-message">
-                    <div class="winner-overlay">
-                        <div class="winner-popup">
-                            <div class="winner-header">
-                                🏁 GAME OVER 🏁
-                                <button id="winner-close-button">×</button>
-                            </div>
-                            <div class="winner-content">
-                                <div class="winner-name" id="winner-name">—</div>
-                                <div class="winner-prize" id="winner-prize">💰 Prize: —</div>
-                                <div class="winner-pattern" id="winner-pattern">🏆 Winning Pattern</div>
-                                <div class="winner-card-preview" id="winner-card">Winning Card</div>
-                            </div>
-                            <div class="winner-footer">
-                                <button id="winner-return-button">Back to Lobby</button>
-                            </div>
-                        </div>
-                    </div>
+            <div class="winner-header">
+                🏁 GAME OVER 🏁
+                <button id="winner-close-button">×</button>
+            </div>
+
+            <div class="winner-content">
+                <div class="winner-name" id="winner-name">—</div>
+
+                <div class="winner-prize" id="winner-prize">
+                    💰 Prize: —
                 </div>
+
+                <div class="winner-pattern" id="winner-pattern">
+                    🏆 Winning Pattern
+                </div>
+
+                <div class="winner-card-preview" id="winner-card">
+                    Winning Card
+                </div>
+            </div>
+
+            <div class="winner-footer">
+                <button id="winner-return-button">
+                    Back to Lobby
+                </button>
+            </div>
+
+        </div>
+        </div>
+</div>
+
             </div>
         </div>
     </div>
-
     <!-- HISTORY TAB -->
     <div id="history-page" class="tab-page">
         <div class="page-heading">📜 Game History</div>
         <div class="page-description">
-            Your previous games and reserved cards. Tap a game to see its details.
+            Your previous games and reserved cards.
+            Tap a game to see its details.
         </div>
         <div id="history-list">
             <div class="empty-message">Loading your history...</div>
@@ -519,89 +631,149 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
             </div>
         </div>
 
-        <div id="withdraw-form" style="display:none; width:calc(100% - 20px); box-sizing:border-box; margin:15px 10px; padding:24px 20px; background:#1e1e1e; border:1px solid #333; border-radius:16px;">
-            <div class="section-title" style="margin-bottom:22px;">WITHDRAW</div>
+<div id="withdraw-form" style="display:none; width:calc(100% - 20px); box-sizing:border-box; margin:15px 10px; padding:24px 20px; background:#1e1e1e; border:1px solid #333; border-radius:16px;">
 
-            <div style="margin-bottom:18px;">
-                <label for="withdraw-amount" style="display:block; color:white; margin-bottom:8px;">Amount (ETB)</label>
-                <input type="number" id="withdraw-amount" placeholder="Enter amount" style="display:block; width:100%; box-sizing:border-box; padding:14px; border-radius:9px; font-size:16px; margin:0;">
-            </div>
+    <div class="section-title" style="margin-bottom:22px;">WITHDRAW</div>
 
-            <div style="margin-bottom:18px;">
-                <label for="withdraw-provider" style="display:block; color:white; margin-bottom:8px;">Payment Method</label>
-                <select id="withdraw-provider" style="display:block; width:100%; box-sizing:border-box; padding:14px; border-radius:9px; font-size:16px; margin:0;">
-                    <option value="telebirr">Telebirr</option>
-                    <option value="cbe">CBE</option>
-                </select>
-            </div>
+    <div style="margin-bottom:18px;">
+        <label for="withdraw-amount" style="display:block; color:white; margin-bottom:8px;">
+            Amount (ETB)
+        </label>
 
-            <div style="margin-bottom:18px;">
-                <label for="withdraw-account-name" style="display:block; color:white; margin-bottom:8px;">Account Holder Name</label>
-                <input type="text" id="withdraw-account-name" placeholder="Full name" style="display:block; width:100%; box-sizing:border-box; padding:14px; border-radius:9px; font-size:16px; margin:0;">
-            </div>
+        <input
+            type="number"
+            id="withdraw-amount"
+            placeholder="Enter amount"
+            style="display:block; width:100%; box-sizing:border-box; padding:14px; border-radius:9px; font-size:16px; margin:0;"
+        >
+    </div>
 
-            <div style="margin-bottom:20px;">
-                <label for="withdraw-account-number" style="display:block; color:white; margin-bottom:8px;">Account Number</label>
-                <input type="text" id="withdraw-account-number" placeholder="Phone or account number" style="display:block; width:100%; box-sizing:border-box; padding:14px; border-radius:9px; font-size:16px; margin:0;">
-            </div>
+    <div style="margin-bottom:18px;">
+        <label for="withdraw-provider" style="display:block; color:white; margin-bottom:8px;">
+            Payment Method
+        </label>
 
-            <button class="wallet-action wallet-withdraw" id="submit-withdrawal" type="button" style="width:100%; margin-top:5px;">
-                Submit Withdrawal
-            </button>
+        <select
+            id="withdraw-provider"
+            style="display:block; width:100%; box-sizing:border-box; padding:14px; border-radius:9px; font-size:16px; margin:0;"
+        >
+            <option value="telebirr">Telebirr</option>
+            <option value="cbe">CBE</option>
+        </select>
+    </div>
+
+    <div style="margin-bottom:18px;">
+        <label for="withdraw-account-name" style="display:block; color:white; margin-bottom:8px;">
+            Account Holder Name
+        </label>
+
+        <input
+            type="text"
+            id="withdraw-account-name"
+            placeholder="Full name"
+            style="display:block; width:100%; box-sizing:border-box; padding:14px; border-radius:9px; font-size:16px; margin:0;"
+        >
+    </div>
+
+    <div style="margin-bottom:20px;">
+        <label for="withdraw-account-number" style="display:block; color:white; margin-bottom:8px;">
+            Account Number
+        </label>
+
+        <input
+            type="text"
+            id="withdraw-account-number"
+            placeholder="Phone or account number"
+            style="display:block; width:100%; box-sizing:border-box; padding:14px; border-radius:9px; font-size:16px; margin:0;"
+        >
+    </div>
+
+    <button class="wallet-action wallet-withdraw" id="submit-withdrawal" type="button" style="width:100%; margin-top:5px;">
+        Submit Withdrawal
+    </button>
+
+</div>
+
+ 
+<div id="deposit-form" style="display:none; margin:15px; padding:24px 20px; background:#1e1e1e; border:1px solid #DAA520; border-radius:16px; box-sizing:border-box;">
+
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="section-title">ገንዘብ ማስገቢያ</div>
+        <button id="close-deposit" type="button" style="background:none; color:white; border:none; font-size:24px;">×</button>
+    </div>
+
+    <div style="margin:24px 0; text-align:center;">
+        <div style="color:#FFD700; font-size:15px;">Telebirr</div>
+
+        <div style="font-size:22px; font-weight:bold; margin:12px 0;">
+            0953345977
+            <button id="copy-telebirr" type="button">Copy</button>
         </div>
 
-        <div id="deposit-form" style="display:none; margin:15px; padding:24px 20px; background:#1e1e1e; border:1px solid #DAA520; border-radius:16px; box-sizing:border-box;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div class="section-title">ገንዘብ ማስገቢያ</div>
-                <button id="close-deposit" type="button" style="background:none; color:white; border:none; font-size:24px;">×</button>
-            </div>
+        <div style="color:white;">Account Name: Kibreab</div>
+    </div>
 
-            <div style="margin:24px 0; text-align:center;">
-                <div style="color:#FFD700; font-size:15px;">Telebirr</div>
-                <div style="font-size:22px; font-weight:bold; margin:12px 0;">
-                    0953345977
-                    <button id="copy-telebirr" type="button">Copy</button>
-                </div>
-                <div style="color:white;">Account Name: Kibreab</div>
-            </div>
+    <div style="margin-bottom:18px;">
+        <label for="deposit-amount" style="display:block; color:white; margin-bottom:8px;">
+            Deposit Amount (ETB)
+        </label>
 
-            <div style="margin-bottom:18px;">
-                <label for="deposit-amount" style="display:block; color:white; margin-bottom:8px;">Deposit Amount (ETB)</label>
-                <div style="color:#FFD700; font-size:13px; margin-bottom:10px;">ዝቅተኛ መጠን: 100 ETB</div>
-                <input type="number" id="deposit-amount" min="100" step="0.01" placeholder="Enter amount" style="display:block; width:100%; box-sizing:border-box; padding:14px; border-radius:9px; font-size:16px; margin:0;">
-            </div>
-
-            <div style="margin-bottom:20px;">
-                <label for="deposit-transaction-id" style="display:block; color:white; margin-bottom:8px;">Transaction ID</label>
-                <input type="text" id="deposit-transaction-id" placeholder="Enter Telebirr transaction ID" style="display:block; width:100%; box-sizing:border-box; padding:14px; border-radius:9px; font-size:16px; margin:0;">
-            </div>
-
-            <button class="wallet-action wallet-deposit" id="submit-deposit" type="button" style="width:100%; margin-top:5px;">
-                Submit Deposit
-            </button>
+        <div style="color:#FFD700; font-size:13px; margin-bottom:10px;">
+            ዝቅተኛ መጠን: 100 ETB
         </div>
+
+        <input
+            type="number"
+            id="deposit-amount"
+            min="100"
+            step="0.01"
+            placeholder="Enter amount"
+            style="display:block; width:100%; box-sizing:border-box; padding:14px; border-radius:9px; font-size:16px; margin:0;"
+        >
+    </div>
+
+    <div style="margin-bottom:20px;">
+        <label for="deposit-transaction-id" style="display:block; color:white; margin-bottom:8px;">
+            Transaction ID
+        </label>
+
+        <input
+            type="text"
+            id="deposit-transaction-id"
+            placeholder="Enter Telebirr transaction ID"
+            style="display:block; width:100%; box-sizing:border-box; padding:14px; border-radius:9px; font-size:16px; margin:0;"
+        >
+    </div>
+
+    <button class="wallet-action wallet-deposit" id="submit-deposit" type="button" style="width:100%; margin-top:5px;">
+        Submit Deposit
+    </button>
+
+</div>
+       
+
 
         <div class="transaction-heading">RECENT TRANSACTIONS</div>
         <div id="transaction-list">
             <div class="transaction-empty">No transactions available yet.</div>
         </div>
-
-        <div id="admin-withdrawal-panel" style="display:none; margin:15px;">
-            <div class="section-title">ADMIN — WITHDRAWAL REQUESTS</div>
-            <div id="admin-withdrawal-list">
-                <div class="transaction-empty">Loading requests...</div>
-            </div>
-        </div>
-
-        <div id="admin-deposit-panel" style="display:none; margin:15px;">
-            <div class="section-title">ADMIN — DEPOSIT REQUESTS</div>
-            <div id="admin-deposit-list">
-                <div class="transaction-empty">Loading requests...</div>
-            </div>
-        </div>
-
+<!-- ADMIN WITHDRAWAL PANEL -->
+<div id="admin-withdrawal-panel" style="display:none; margin:15px;">
+    <div class="section-title">ADMIN — WITHDRAWAL REQUESTS</div>
+    <div id="admin-withdrawal-list">
+        <div class="transaction-empty">Loading requests...</div>
+    </div>
+</div>
+        <!-- ADMIN DEPOSIT PANEL -->
+<div id="admin-deposit-panel" style="display:none; margin:15px;">
+    <div class="section-title">ADMIN — DEPOSIT REQUESTS</div>
+    <div id="admin-deposit-list">
+        <div class="transaction-empty">Loading requests...</div>
+    </div>
+</div>
         <div class="notice">
-            Deposit, withdrawal, and promo transactions sync directly with your Buna Bingo wallet.
+            Deposit, withdrawal, and transaction records will appear here
+            when the wallet payment system is connected.
         </div>
     </div>
 
@@ -659,20 +831,34 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
             </div>
             <div class="bank-empty">No bank accounts added yet.</div>
         </div>
+
+        <div class="notice">
+            Profile and account information is displayed from your
+            Buna Bingo player account. Account-management options
+            will be connected when their backend is ready.
+        </div>
     </div>
 
     <!-- BOTTOM NAVIGATION -->
     <nav class="bottom-nav">
-        <button class="nav-item active" data-tab="bingo"><span class="nav-icon">🎱</span><span>Bingo</span></button>
-        <button class="nav-item" data-tab="history"><span class="nav-icon">📜</span><span>History</span></button>
-        <button class="nav-item" data-tab="wallet"><span class="nav-icon">💰</span><span>Wallet</span></button>
-        <button class="nav-item" data-tab="profile"><span class="nav-icon">👤</span><span>Profile</span></button>
+        <button class="nav-item active" data-tab="bingo">
+            <span class="nav-icon">🎱</span><span>Bingo</span>
+        </button>
+        <button class="nav-item" data-tab="history">
+            <span class="nav-icon">📜</span><span>History</span>
+        </button>
+        <button class="nav-item" data-tab="wallet">
+            <span class="nav-icon">💰</span><span>Wallet</span>
+        </button>
+        <button class="nav-item" data-tab="profile">
+            <span class="nav-icon">👤</span><span>Profile</span>
+        </button>
     </nav>
 
     <div class="toast" id="toast"></div>
 </div>
 
-<!-- POPUP MODALS -->
+<!-- ===== POPUP MODALS ===== -->
 <div class="bb-modal" id="bb-promo-modal">
     <div class="bb-modal-box">
         <h3>✦ Promo Code</h3>
@@ -702,6 +888,9 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
 </div>
 
 <script>
+// ============================================================
+// 1. LANGUAGE SYSTEM  (must be defined FIRST — before any use)
+// ============================================================
 const BB_TRANSLATIONS = {
     "Connecting...": "በመገናኘት ላይ...",
     "SDK not loaded": "SDK አልተጫነም",
@@ -712,6 +901,7 @@ const BB_TRANSLATIONS = {
     "Wallet": "ዋሌት",
     "Profile": "ፕሮፋይል",
     "Round": "ዙር",
+    "Pool": "ደራሽ",
     "Stake": "የጨዋታ ክፍያ",
     "Main Balance": "ዋና ቀሪ ሂሳብ",
     "Bonus Balance": "የቦነስ ቀሪ ሂሳብ",
@@ -737,6 +927,7 @@ const BB_TRANSLATIONS = {
     "Recent Calls": "የወጡ ቁጥሮች",
     "No numbers called yet.": "እስካሁን ቁጥር አልወጣም።",
     "BINGO!": "ቢንጎ!",
+    "Checking Bingo...": "ቢንጎን በማረጋገጥ ላይ...",
     "Game History": "የጨዋታ ታሪክ",
     "Your previous games and reserved cards.": "ያለፉት ጨዋታዎችዎ እና ያስያዙዋቸው ካርዶች።",
     "Tap a game to see its details.": "ዝርዝሩን ለማየት ጨዋታውን ይንኩ።",
@@ -761,6 +952,15 @@ const BB_TRANSLATIONS = {
     "Add bank account": "የባንክ ሂሳብ ያክሉ",
     "No bank accounts added yet.": "እስካሁን የባንክ ሂሳብ አልተጨመረም።",
     "Buna Gold": "ቡና ጎልድ",
+    "FREE": "ነፃ",
+    "Date unavailable": "ቀኑ አልተገኘም",
+    "Cards:": "ካርዶች:",
+    "Total spent:": "ጠቅላላ ወጪ:",
+    "Room ID:": "የክፍል መለያ:",
+    "Reserved card numbers:": "የተያዙ የካርድ ቁጥሮች:",
+    "No card details available.": "የካርድ ዝርዝር የለም።",
+    "No games played yet.": "እስካሁን ጨዋታ አልተጫወቱም።",
+    // Promo popup strings
     "Enter your promo code to receive bonus balance.": "የቦነስ ገንዘብ ለማግኘት የፕሮሞ ኮድዎን ያስገቡ።",
     "Enter promo code": "የፕሮሞ ኮድ ያስገቡ",
     "Redeem Code": "ኮዱን ይጠቀሙ",
@@ -819,8 +1019,12 @@ new MutationObserver(records => {
     records.forEach(record => record.addedNodes.forEach(node => bbTranslateElement(node)));
 }).observe(document.body, { childList:true, subtree:true });
 
+
+// ============================================================
+// 2. MAIN APP LOGIC (original Buna Bingo)
+// ============================================================
 const $ = id => document.getElementById(id);
-const API_BASE = window.location.origin || "https://buna-bingo-backend.kibreabdaniel75.workers.dev";
+const GAME_URL = "https://buna-bingo-backend.kibreabdaniel75.workers.dev/";
 const playerName = $("player-name");
 const mainBalance = $("main-balance");
 const bonusBalance = $("bonus-balance");
@@ -843,15 +1047,16 @@ let reservedCards = new Set();
 let busy = false;
 let refreshTimer = null;
 let countdownTimer = null;
-let socket = null;
-let wsConnected = false;
 let historyData = [];
+let historyLoaded = false;
 let activeTab = "bingo";
-let dismissedWinnerRound = null;
+let dismissedWinnerRound = null 
 let returnedToLobby = false;
 let walletBalanceVisible = true;
 let profileBalanceVisible = false;
 
+
+// ---------- TOAST ----------
 function showToast(message, type = "error") {
     const toast = $("toast");
     toast.textContent = message;
@@ -861,19 +1066,18 @@ function showToast(message, type = "error") {
     if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred(type === "success" ? "success" : "error");
 }
 
+// ---------- HELPERS ----------
 function formatMoney(value) { return Number(value || 0).toFixed(2) + " ETB"; }
 function getLetter(n) { if (n<=15) return "B"; if (n<=30) return "I"; if (n<=45) return "N"; if (n<=60) return "G"; return "O"; }
 function getPlayerFullName() {
     if (!player) return "Player";
     return [player.first_name, player.last_name].filter(Boolean).join(" ") || "Player";
 }
-
 function updateSelectedDisplay() {
     selectedDisplay.textContent = selectedCards.size;
     myCardsCounter.textContent = myCards.length;
     $("game-my-cards-counter").textContent = myCards.length;
 }
-
 function updateBalances(data) {
     if (!data) return;
     const main = Number(data.main_balance || 0);
@@ -890,7 +1094,6 @@ function updateBalances(data) {
     $("profile-balance").dataset.value = formatMoney(total);
     applyBalanceVisibility();
 }
-
 function applyBalanceVisibility() {
     const total = $("wallet-total").dataset.value || "— ETB";
     const main = $("wallet-main").dataset.value || "— ETB";
@@ -901,7 +1104,6 @@ function applyBalanceVisibility() {
     $("profile-balance").textContent = profileBalanceVisible
         ? ($("profile-balance").dataset.value || "— ETB") : "••••••";
 }
-
 function updateProfile() {
     if (!player) return;
     const name = getPlayerFullName();
@@ -912,16 +1114,18 @@ function updateProfile() {
     );
     applyBalanceVisibility();
 }
-
 async function refreshAppBalance() {
     if (!tg?.initData) return;
+
     try {
-        const response = await fetch(`${API_BASE}/api/auth/telegram`, {
+        const response = await fetch("/api/auth/telegram", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ initData: tg.initData })
         });
+
         const data = await response.json();
+
         if (data.success && data.player) {
             player = data.player;
             updateBalances(player);
@@ -931,77 +1135,7 @@ async function refreshAppBalance() {
         console.error("Balance update failed:", error);
     }
 }
-
-
-async function loadTransactions() {
-    if (!tg?.initData) return;
-
-    const list = $("transaction-list");
-
-    try {
-        const res = await fetch(`${API_BASE}/api/wallet/transactions`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData: tg.initData })
-        });
-
-        const data = await res.json();
-        if (!res.ok || !data.success) return;
-
-        list.replaceChildren();
-
-        if (!data.transactions || !data.transactions.length) {
-            const empty = document.createElement("div");
-            empty.className = "transaction-empty";
-            empty.textContent = "No transactions available yet.";
-            list.appendChild(empty);
-            return;
-        }
-
-        data.transactions.forEach(tx => {
-            const row = document.createElement("div");
-            row.className = "transaction-empty";
-            row.style.textAlign = "left";
-
-            const top = document.createElement("div");
-            top.style.cssText =
-                "display:flex;justify-content:space-between;color:#fff;font-weight:bold;";
-
-            const typeProvider = document.createElement("span");
-            typeProvider.textContent =
-                `${String(tx.type || "").toUpperCase()} (${String(tx.provider || "").toUpperCase()})`;
-
-            const amount = document.createElement("span");
-            amount.style.color = "var(--gold)";
-            amount.textContent = formatMoney(tx.amount);
-
-            top.append(typeProvider, amount);
-
-            const details = document.createElement("div");
-            details.style.marginTop = "4px";
-
-            details.append(
-                document.createTextNode("Status: ")
-            );
-
-            const status = document.createElement("strong");
-            status.textContent = String(tx.status || "-");
-
-            details.append(
-                status,
-                document.createTextNode(" · Ref: " + String(tx.reference || "-"))
-            );
-
-            row.append(top, details);
-            list.appendChild(row);
-        });
-
-    } catch (err) {
-        console.error("Transactions error:", err);
-    }
-}
-
-
+// ---------- TAB NAVIGATION ----------
 function switchTab(tab) {
     activeTab = tab;
     document.querySelectorAll(".tab-page").forEach(p => p.classList.remove("active"));
@@ -1014,12 +1148,13 @@ function switchTab(tab) {
     if (nav) nav.classList.add("active");
 
     if (tab === "history") loadHistory();
+
     if (tab === "wallet") {
-        updateBalances(player);
-        loadTransactions();
-        loadAdminWithdrawals();
-        loadAdminDeposits();
+    updateBalances(player);
+    loadAdminWithdrawals();
+    loadAdminDeposits();
     }
+
     if (tab === "profile") updateProfile();
 
     if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
@@ -1029,23 +1164,20 @@ document.querySelectorAll(".nav-item").forEach(b =>
     b.addEventListener("click", () => switchTab(b.dataset.tab))
 );
 
+// ---------- WALLET INTERACTIONS ----------
 $("wallet-visibility").addEventListener("click", () => {
     walletBalanceVisible = !walletBalanceVisible;
     $("wallet-visibility").textContent = walletBalanceVisible ? "◉" : "⊘";
     applyBalanceVisibility();
 });
-
 $("profile-visibility").addEventListener("click", () => {
     profileBalanceVisible = !profileBalanceVisible;
     $("profile-visibility").textContent = profileBalanceVisible ? "◉" : "⊘";
     applyBalanceVisibility();
 });
-
 $("main-balance-row").addEventListener("click", () => $("main-balance-row").classList.toggle("expanded"));
 $("bonus-balance-row").addEventListener("click", () => $("bonus-balance-row").classList.toggle("expanded"));
-
 $("deposit-button").addEventListener("click", () => {
-    $("withdraw-form").style.display = "none";
     $("deposit-form").style.display = "block";
 });
 
@@ -1056,13 +1188,11 @@ $("close-deposit").addEventListener("click", () => {
 $("copy-telebirr").addEventListener("click", async () => {
     try {
         await navigator.clipboard.writeText("0953345977");
-        showToast("Copied 0953345977", "success");
-    } catch {
+    } catch (error) {
         showToast("Could not copy number.");
     }
 });
-
-$("submit-deposit").addEventListener("click", async () => {
+    $("submit-deposit").addEventListener("click", async () => {
     const button = $("submit-deposit");
     const amount = Number($("deposit-amount").value);
     const transactionId = $("deposit-transaction-id").value.trim();
@@ -1076,11 +1206,21 @@ $("submit-deposit").addEventListener("click", async () => {
     button.textContent = "Submitting...";
 
     try {
-        const response = await fetch(`${API_BASE}/api/wallet/deposit/create`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData: tg.initData, amount, transactionId })
-        });
+        const response = await fetch(
+            GAME_URL + "api/wallet/deposit/create",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    initData: tg.initData,
+                    amount,
+                    transactionId
+                })
+            }
+        );
+
         const data = await response.json();
 
         if (!response.ok || !data.success) {
@@ -1088,28 +1228,26 @@ $("submit-deposit").addEventListener("click", async () => {
             return;
         }
 
-        showToast(data.message || "Deposit request submitted.", "success");
+        showToast("Deposit request submitted. Waiting for verification.");
+
         $("deposit-amount").value = "";
         $("deposit-transaction-id").value = "";
         $("deposit-form").style.display = "none";
-        await loadTransactions();
-        await loadAdminDeposits();
-    } catch {
+
+    } catch (error) {
         showToast("Connection error. Please try again.");
     } finally {
         button.disabled = false;
         button.textContent = "Submit Deposit";
     }
 });
-
 $("withdraw-button").addEventListener("click", () => {
     const form = $("withdraw-form");
-    $("deposit-form").style.display = "none";
     form.style.display = form.style.display === "none" ? "block" : "none";
 });
-
-$("submit-withdrawal").addEventListener("click", async () => {
+    $("submit-withdrawal").addEventListener("click", async () => {
     const button = $("submit-withdrawal");
+
     const amount = Number($("withdraw-amount").value);
     const provider = $("withdraw-provider").value;
     const accountName = $("withdraw-account-name").value.trim();
@@ -1124,17 +1262,23 @@ $("submit-withdrawal").addEventListener("click", async () => {
     button.textContent = "Submitting...";
 
     try {
-        const response = await fetch(`${API_BASE}/api/wallet/withdrawal/create`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                initData: tg.initData,
-                amount,
-                provider,
-                accountName,
-                accountNumber
-            })
-        });
+        const response = await fetch(
+            GAME_URL + "api/wallet/withdrawal/create",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    initData: tg.initData,
+                    amount,
+                    provider,
+                    accountName,
+                    accountNumber
+                })
+            }
+        );
+
         const data = await response.json();
 
         if (!response.ok || !data.success) {
@@ -1142,34 +1286,39 @@ $("submit-withdrawal").addEventListener("click", async () => {
             return;
         }
 
-        showToast(data.message || "Withdrawal request submitted!", "success");
+        showToast("Withdrawal request submitted successfully!");
+
         $("withdraw-amount").value = "";
         $("withdraw-account-name").value = "";
         $("withdraw-account-number").value = "";
         $("withdraw-form").style.display = "none";
-        await refreshAppBalance();
-        await loadTransactions();
-        await loadAdminWithdrawals();
-    } catch {
+
+        loadAdminWithdrawals();
+
+    } catch (error) {
         showToast("Connection error. Please try again.");
     } finally {
         button.disabled = false;
         button.textContent = "Submit Withdrawal";
     }
 });
-
 async function loadAdminWithdrawals() {
-    if (!tg?.initData) return;
     const panel = $("admin-withdrawal-panel");
     const list = $("admin-withdrawal-list");
 
     try {
-        const response = await fetch(`${API_BASE}/api/wallet/withdrawal/pending`, {
-            method: "GET",
-            headers: { "X-Telegram-Init-Data": tg.initData }
-        });
+        const response = await fetch(
+            GAME_URL + "api/wallet/withdrawal/pending",
+            {
+                method: "GET",
+                headers: {
+                    "X-Telegram-Init-Data": tg.initData
+                }
+            }
+        );
         const data = await response.json();
 
+        // Keep the panel hidden for non-admin players.
         if (!response.ok || !data.success) {
             panel.style.display = "none";
             return;
@@ -1189,10 +1338,10 @@ async function loadAdminWithdrawals() {
         data.withdrawals.forEach(item => {
             const card = document.createElement("div");
             card.className = "transaction-empty";
+            card.style.marginBottom = "10px";
             card.style.padding = "12px";
 
             const details = document.createElement("div");
-            details.style.whiteSpace = "pre-line";
             details.textContent =
                 `${item.provider.toUpperCase()} | ${item.amount} ETB\n` +
                 `Name: ${item.accountName}\n` +
@@ -1212,23 +1361,34 @@ async function loadAdminWithdrawals() {
             card.append(details, approve, reject);
             list.appendChild(card);
         });
+
     } catch (error) {
         console.error("ADMIN WITHDRAWALS:", error);
     }
-}
-
-async function reviewAdminWithdrawal(id, action) {
+                                         }
+    async function reviewAdminWithdrawal(id, action) {
     const message = action === "approve"
         ? "Have you already sent the money to the player?"
         : "Are you sure you want to reject this request?";
+
     if (!confirm(message)) return;
 
     try {
-        const response = await fetch(`${API_BASE}/api/wallet/withdrawal/review`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData: tg.initData, requestId: id, action })
-        });
+        const response = await fetch(
+            GAME_URL + "api/wallet/withdrawal/review",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    initData: tg.initData,
+                    requestId: id,
+                    action: action
+                })
+            }
+        );
+
         const data = await response.json();
 
         if (!response.ok || !data.success) {
@@ -1236,24 +1396,30 @@ async function reviewAdminWithdrawal(id, action) {
             return;
         }
 
-        showToast(data.message, "success");
+        showToast(data.message);
         await loadAdminWithdrawals();
-        await loadTransactions();
-    } catch {
+
+    } catch (error) {
+        console.error("WITHDRAWAL REVIEW:", error);
         showToast("Could not review withdrawal.");
     }
-}
-
+    }
+    // ---------- ADMIN DEPOSIT REQUESTS ----------
 async function loadAdminDeposits() {
-    if (!tg?.initData) return;
     const panel = $("admin-deposit-panel");
     const list = $("admin-deposit-list");
 
     try {
-        const response = await fetch(`${API_BASE}/api/wallet/deposit/pending`, {
-            method: "GET",
-            headers: { "X-Telegram-Init-Data": tg.initData }
-        });
+        const response = await fetch(
+            GAME_URL + "api/wallet/deposit/pending",
+            {
+                method: "GET",
+                headers: {
+                    "X-Telegram-Init-Data": tg.initData
+                }
+            }
+        );
+
         const data = await response.json();
 
         if (!response.ok || !data.success) {
@@ -1275,6 +1441,7 @@ async function loadAdminDeposits() {
         data.deposits.forEach(item => {
             const card = document.createElement("div");
             card.className = "transaction-empty";
+            card.style.marginBottom = "10px";
             card.style.padding = "12px";
 
             const details = document.createElement("div");
@@ -1298,23 +1465,34 @@ async function loadAdminDeposits() {
             card.append(details, approve, reject);
             list.appendChild(card);
         });
+
     } catch (error) {
         console.error("ADMIN DEPOSITS:", error);
     }
-}
-
-async function reviewAdminDeposit(id, action) {
+    }
+    async function reviewAdminDeposit(id, action) {
     const message = action === "approve"
         ? "Have you verified the Telebirr payment and transaction ID?"
         : "Are you sure you want to reject this deposit?";
+
     if (!confirm(message)) return;
 
     try {
-        const response = await fetch(`${API_BASE}/api/wallet/deposit/review`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData: tg.initData, requestId: id, action })
-        });
+        const response = await fetch(
+            GAME_URL + "api/wallet/deposit/review",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    initData: tg.initData,
+                    requestId: id,
+                    action: action
+                })
+            }
+        );
+
         const data = await response.json();
 
         if (!response.ok || !data.success) {
@@ -1322,29 +1500,29 @@ async function reviewAdminDeposit(id, action) {
             return;
         }
 
-        showToast(data.message, "success");
+        showToast(data.message);
         await loadAdminDeposits();
         await refreshAppBalance();
-        await loadTransactions();
-    } catch {
+
+    } catch (error) {
+        console.error("DEPOSIT REVIEW:", error);
         showToast("Could not review deposit.");
     }
-}
-
+    }
+// NOTE: profile-action handlers removed here — they are handled in the popup module below.
 document.querySelectorAll("[data-bank-action]").forEach(b => {
     b.addEventListener("click", () => showToast("Bank account setup is coming soon."));
 });
 
+// ---------- SCREEN SWITCHING ----------
 function updateScreens() {
     if (!roomData) return;
     const lobby = $("lobby-screen");
     const game = $("game-screen");
     const status = roomData.status;
-
     if (status !== "finished") {
-        returnedToLobby = false;
+    returnedToLobby = false;
     }
-
     if (status === "playing" || (status === "finished" && !returnedToLobby)) {
         lobby.classList.remove("active");
         game.classList.add("active");
@@ -1355,11 +1533,11 @@ function updateScreens() {
         $("lobby-status").textContent = status === "countdown"
             ? "⏳ Game starting soon! Get ready..." : "Waiting for players...";
     }
-
     bingoButton.disabled = status !== "playing" || busy;
     reserveButton.disabled = busy || (status !== "waiting" && status !== "countdown");
 }
 
+// ---------- NUMBER BOARD ----------
 function createNumberBoard() {
     const board = $("number-board");
     board.innerHTML = "";
@@ -1375,24 +1553,24 @@ function createNumberBoard() {
 
         for (let col = 0; col < 15; col++) {
             const number = row * 15 + col + 1;
+
             const cell = document.createElement("div");
             cell.className = "called-number";
             cell.id = "number-" + number;
             cell.textContent = number;
+
             line.appendChild(cell);
         }
 
         board.appendChild(line);
     });
 }
-
 function renderNumberBoard() {
     const called = roomData?.calledNumbers || [];
     document.querySelectorAll(".called-number").forEach(cell => {
         const number = Number(cell.id.replace("number-", ""));
         cell.classList.toggle("active", called.includes(number));
     });
-
     const recent = $("latest-calls");
     recent.innerHTML = "";
     const latest = [...called].reverse().slice(0, 10);
@@ -1406,17 +1584,16 @@ function renderNumberBoard() {
             recent.appendChild(ball);
         });
     }
-
     const current = roomData?.currentNumber;
     $("current-number").textContent = current ? getLetter(current) + "-" + current : "--";
 }
 
+// ---------- PLAYER CARDS ----------
 function renderMyCards() {
     const gameContainer = $("my-bingo-cards");
     const lobbyContainer = $("lobby-my-cards");
     gameContainer.innerHTML = "";
     lobbyContainer.innerHTML = "";
-
     if (!myCards.length) {
         const empty = '<div class="empty-message">You haven\'t reserved any cards yet.</div>';
         gameContainer.innerHTML = empty;
@@ -1424,18 +1601,15 @@ function renderMyCards() {
         updateSelectedDisplay();
         return;
     }
-
     const called = roomData?.calledNumbers || [];
     myCards.forEach(item => {
         const card = item.card;
         if (!Array.isArray(card)) return;
-
         const wrapper = document.createElement("div");
         wrapper.className = "my-bingo-card";
         const heading = document.createElement("h4");
         heading.textContent = "CARD #" + item.slot;
         wrapper.appendChild(heading);
-
         const cardGrid = document.createElement("div");
         cardGrid.className = "bingo-grid";
         ["B","I","N","G","O"].forEach(letter => {
@@ -1444,7 +1618,6 @@ function renderMyCards() {
             cell.textContent = letter;
             cardGrid.appendChild(cell);
         });
-
         card.forEach(row => row.forEach(number => {
             const cell = document.createElement("div");
             cell.className = "bingo-cell";
@@ -1457,32 +1630,27 @@ function renderMyCards() {
             }
             cardGrid.appendChild(cell);
         }));
-
         wrapper.appendChild(cardGrid);
         gameContainer.appendChild(wrapper.cloneNode(true));
         lobbyContainer.appendChild(wrapper);
     });
-
     updateSelectedDisplay();
 }
 
+// ---------- CARD SELECTION ----------
 function renderCard(number) {
     const card = $("card-" + number);
     if (!card) return;
     card.className = "card-number";
     card.disabled = false;
-
     if (myCards.some(item => Number(item.slot) === number)) {
-        card.classList.add("owned");
-        card.disabled = true;
+        card.classList.add("owned"); card.disabled = true;
     } else if (reservedCards.has(number)) {
-        card.classList.add("reserved");
-        card.disabled = true;
+        card.classList.add("reserved"); card.disabled = true;
     } else if (selectedCards.has(number)) {
         card.classList.add("selected");
     }
 }
-
 function createCards() {
     const fragment = document.createDocumentFragment();
     for (let i = 1; i <= 500; i++) {
@@ -1494,13 +1662,9 @@ function createCards() {
         card.addEventListener("click", () => {
             if (busy || reservedCards.has(i)) return;
             if (myCards.some(item => Number(item.slot) === i)) return;
-            if (selectedCards.has(i)) {
-                selectedCards.delete(i);
-            } else {
-                if (selectedCards.size + myCards.length >= MAX_CARDS) {
-                    showToast("Maximum 4 cards per player.");
-                    return;
-                }
+            if (selectedCards.has(i)) selectedCards.delete(i);
+            else {
+                if (selectedCards.size + myCards.length >= MAX_CARDS) { showToast("Maximum 4 cards per player."); return; }
                 selectedCards.add(i);
             }
             renderCard(i);
@@ -1511,80 +1675,7 @@ function createCards() {
     grid.appendChild(fragment);
 }
 
-function applyRoomSnapshot(room, rawReserved) {
-    roomData = room;
-    $("player-count").textContent = roomData.playersCount ?? 0;
-    reservedCards = new Set((rawReserved || []).map(Number));
-    $("round-id").textContent = roomData.roundId ? roomData.roundId.slice(0, 8) : "—";
-    prizePool.textContent = formatMoney(roomData.prizePool);
-    $("game-status").textContent =
-        roomData.status === "waiting" ? "Waiting for players" :
-        roomData.status === "countdown" ? "Game starting soon" :
-        roomData.status === "playing" ? "Game in progress" :
-        roomData.status === "finished" ? "Round finished" : roomData.status;
-
-    const winnerMessage = $("winner-message");
-    if (roomData.status === "finished" && !returnedToLobby) {
-        if (dismissedWinnerRound !== roomData.roundId) {
-            winnerMessage.classList.add("show");
-        }
-        $("winner-name").textContent = roomData.winner
-            ? (roomData.winner.name || "Player")
-            : "No winner this round";
-        $("winner-prize").textContent = roomData.winner
-            ? "💰 Prize: " + formatMoney(roomData.prizePool)
-            : "😔 Better luck next round!";
-    } else {
-        winnerMessage.classList.remove("show");
-        if (roomData.status !== "finished") {
-            dismissedWinnerRound = null;
-        }
-    }
-
-    renderNumberBoard();
-    renderMyCards();
-    for (let i = 1; i <= 500; i++) renderCard(i);
-    updateCountdown();
-    updateScreens();
-}
-
-function connectWebSocket() {
-    try {
-        const wsUrl = API_BASE.replace(/^http/, "ws") + "/api/room/ws";
-        socket = new WebSocket(wsUrl);
-
-        socket.addEventListener("open", () => {
-            wsConnected = true;
-        });
-
-        socket.addEventListener("message", async event => {
-            try {
-                const msg = JSON.parse(event.data);
-                if (msg.type === "room_update" && msg.room) {
-                    applyRoomSnapshot(msg.room, msg.reservedCards);
-                    await loadPlayerGame();
-                    if (msg.room.status === "finished") {
-                        await refreshAppBalance();
-                    }
-                }
-            } catch (err) {
-                console.error("WS parse error:", err);
-            }
-        });
-
-        socket.addEventListener("close", () => {
-            wsConnected = false;
-            setTimeout(connectWebSocket, 3000);
-        });
-
-        socket.addEventListener("error", () => {
-            wsConnected = false;
-        });
-    } catch {
-        wsConnected = false;
-    }
-}
-
+// ---------- AUTH ----------
 async function authenticate() {
     for (let i = 0; i < 20; i++) {
         if (window.Telegram?.WebApp) break;
@@ -1596,24 +1687,20 @@ async function authenticate() {
         showToast("Open the game inside Telegram.");
         return false;
     }
-    tg.ready();
-    tg.expand();
+    tg.ready(); tg.expand();
     if (!tg.initData) {
         playerName.textContent = "Open in Telegram";
         showToast("Open the game using the Telegram bot.");
         return false;
     }
-
     try {
-        const response = await fetch(`${API_BASE}/api/auth/telegram`, {
+        const response = await fetch("/api/auth/telegram", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type":"application/json" },
             body: JSON.stringify({ initData: tg.initData })
         });
         const data = await response.json();
-        if (!response.ok || !data.success || !data.player) {
-            throw new Error(data.error || "Telegram login failed.");
-        }
+        if (!response.ok || !data.success || !data.player) throw new Error(data.error || "Telegram login failed.");
         player = data.player;
         playerName.textContent = getPlayerFullName();
         updateBalances(player);
@@ -1622,29 +1709,68 @@ async function authenticate() {
     } catch (error) {
         playerName.textContent = "Login failed";
         showToast(error.message);
+        console.error("AUTH ERROR:", error);
         return false;
     }
 }
 
+// ---------- ROOM ----------
 async function loadRoom() {
     try {
-        const response = await fetch(`${API_BASE}/api/room`, { cache: "no-store" });
+        const response = await fetch("/api/room", { cache: "no-store" });
         const data = await response.json();
         if (!response.ok || !data.success) throw new Error(data.error || "Could not load round.");
-        applyRoomSnapshot(data.room, data.reservedCards);
-        return true;
-    } catch (error) {
-        if (navigator.onLine) showToast(error.message);
-        return false;
+        roomData = data.room;
+        $("player-count").textContent = roomData.playersCount ?? 0;
+        reservedCards = new Set((data.reservedCards || []).map(Number));
+        $("round-id").textContent = roomData.roundId ? roomData.roundId.slice(0, 8) : "—";
+        prizePool.textContent = formatMoney(roomData.prizePool);
+        $("game-status").textContent =
+            roomData.status === "waiting" ? "Waiting for players" :
+            roomData.status === "countdown" ? "Game starting soon" :
+            roomData.status === "playing" ? "Game in progress" :
+            roomData.status === "finished" ? "Round finished" : roomData.status;
+    winnerMessage = $("winner-message");
+        if (roomData.status === "finished" && !returnedToLobby) {
+    if (dismissedWinnerRound !== roomData.roundId) {
+        winnerMessage.classList.add("show");
+    }
+
+    $("winner-name").textContent = roomData.winner
+        ? (roomData.winner.name || "Player")
+        : "No winner this round";
+
+    $("winner-prize").textContent = roomData.winner
+        ? "💰 Prize: " + formatMoney(roomData.prizePool * 0.8)
+        : "😔 Better luck next round!";
+} else {
+    winnerMessage.classList.remove("show");
+    if (roomData.status !== "finished") {
+        dismissedWinnerRound = null;
     }
 }
 
+        renderNumberBoard();
+        for (let i = 1; i <= 500; i++) renderCard(i);
+        updateCountdown();
+        updateScreens();
+        return true;
+    } catch (error) {
+    console.error("ROOM ERROR:", error);
+    if (navigator.onLine) {
+        showToast(error.message);
+    }
+    return false;
+    }
+}
+
+// ---------- PLAYER GAME ----------
 async function loadPlayerGame() {
     if (!tg?.initData) return;
     try {
-        const response = await fetch(`${API_BASE}/api/game/state`, {
+        const response = await fetch("/api/game/state", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type":"application/json" },
             body: JSON.stringify({ initData: tg.initData })
         });
         const data = await response.json();
@@ -1660,6 +1786,7 @@ async function loadPlayerGame() {
     }
 }
 
+// ---------- HISTORY ----------
 async function loadHistory() {
     if (!tg?.initData) {
         $("history-list").innerHTML = '<div class="empty-message">Please open the game inside Telegram.</div>';
@@ -1667,21 +1794,23 @@ async function loadHistory() {
     }
     $("history-list").innerHTML = '<div class="empty-message">Loading your history...</div>';
     try {
-        const response = await fetch(`${API_BASE}/api/game/history`, {
+        const response = await fetch("/api/game/history", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type":"application/json" },
             body: JSON.stringify({ initData: tg.initData })
         });
         const data = await response.json();
         if (!response.ok || !data.success) throw new Error(data.error || "Could not load history.");
         historyData = Array.isArray(data.history) ? data.history : [];
+        historyLoaded = true;
         renderHistory();
+        updateProfile();
     } catch (error) {
+        console.error("HISTORY ERROR:", error);
         $("history-list").innerHTML = '<div class="empty-message">Could not load history. Please try again.</div>';
         showToast(error.message);
     }
 }
-
 function renderHistory() {
     const container = $("history-list");
     container.innerHTML = "";
@@ -1689,72 +1818,58 @@ function renderHistory() {
         container.innerHTML = '<div class="empty-message">📜 No games played yet.</div>';
         return;
     }
-
     historyData.forEach(item => {
         const details = document.createElement("details");
         details.className = "history-card";
         const summary = document.createElement("summary");
         const top = document.createElement("div");
         top.className = "history-top";
-
         const left = document.createElement("div");
         const room = document.createElement("div");
         room.className = "history-room";
         room.textContent = "ROOM #" + (item.roomId || "—");
-
         const date = document.createElement("div");
         date.className = "history-date";
         const ts = Number(item.playedAt);
         date.textContent = ts ? new Date(ts).toLocaleString() : "Date unavailable";
-
-        left.append(room, date);
+        left.appendChild(room); left.appendChild(date);
         const cost = document.createElement("div");
         cost.className = "history-cost";
         cost.textContent = formatMoney(item.amountSpent);
-        top.append(left, cost);
+        top.appendChild(left); top.appendChild(cost);
         summary.appendChild(top);
-
         const detailBox = document.createElement("div");
-detailBox.className = "history-details";
-        const cardsCountLine = document.createElement("div");
-const cardsLabel = document.createElement("strong");
-cardsLabel.textContent = "Cards:";
-cardsCountLine.append(cardsLabel, document.createTextNode(" " + String(Number(item.cardsCount || 0))));
-
-const spentLine = document.createElement("div");
-const spentLabel = document.createElement("strong");
-spentLabel.textContent = "Total spent:";
-spentLine.append(spentLabel, document.createTextNode(" " + formatMoney(item.amountSpent)));
-
-const roomLine = document.createElement("div");
-const roomLabel = document.createElement("strong");
-roomLabel.textContent = "Room ID:";
-roomLine.append(roomLabel, document.createTextNode(" " + String(item.roomId || "—")));
-
-const reservedLine = document.createElement("div");
-reservedLine.textContent = "Reserved card numbers:";
-
-detailBox.append(cardsCountLine, spentLine, roomLine, reservedLine);
+        detailBox.className = "history-details";
+        const count = document.createElement("div");
+        count.innerHTML = "<strong>Cards:</strong> " + Number(item.cardsCount || 0);
+        const stake = document.createElement("div");
+        stake.innerHTML = "<strong>Total spent:</strong> " + formatMoney(item.amountSpent);
+        const roomId = document.createElement("div");
+        roomId.innerHTML = "<strong>Room ID:</strong> " + (item.roomId || "—");
+        const cardsTitle = document.createElement("div");
+        cardsTitle.innerHTML = "<strong>Reserved card numbers:</strong>";
         const cardsList = document.createElement("div");
         cardsList.className = "history-card-list";
         const slots = Array.isArray(item.cardSlots) ? item.cardSlots : [];
-        if (!slots.length) {
-            cardsList.textContent = "No card details available.";
-        } else {
-            slots.forEach(slot => {
-                const badge = document.createElement("span");
-                badge.className = "history-card-number";
-                badge.textContent = "#" + slot;
-                cardsList.appendChild(badge);
-            });
-        }
-
+        if (!slots.length) cardsList.textContent = "No card details available.";
+        else slots.forEach(slot => {
+            const badge = document.createElement("span");
+            badge.className = "history-card-number";
+            badge.textContent = "#" + slot;
+            cardsList.appendChild(badge);
+        });
+        detailBox.appendChild(count);
+        detailBox.appendChild(stake);
+        detailBox.appendChild(roomId);
+        detailBox.appendChild(cardsTitle);
         detailBox.appendChild(cardsList);
-        details.append(summary, detailBox);
+        details.appendChild(summary);
+        details.appendChild(detailBox);
         container.appendChild(details);
     });
 }
 
+// ---------- COUNTDOWN ----------
 function updateCountdown() {
     clearInterval(countdownTimer);
     function tick() {
@@ -1766,36 +1881,31 @@ function updateCountdown() {
         } else if (roomData.status === "waiting") {
             timeLeft.textContent = "Waiting";
             $("lobby-status").textContent = "Waiting for players...";
-        } else if (roomData.status === "playing") {
-            timeLeft.textContent = "Playing";
-        } else {
-            timeLeft.textContent = "Finished";
-        }
+        } else if (roomData.status === "playing") timeLeft.textContent = "Playing";
+        else timeLeft.textContent = "Finished";
     }
     tick();
     countdownTimer = setInterval(tick, 1000);
 }
 
+// ---------- RESERVE ----------
 async function reserveCards() {
     if (busy) return;
     if (!tg?.initData || !player) { showToast("Please wait for login."); return; }
     if (!selectedCards.size) { showToast("Select at least one card."); return; }
     if (selectedCards.size + myCards.length > MAX_CARDS) { showToast("Maximum 4 cards per player."); return; }
-
     busy = true;
     reserveButton.disabled = true;
     reserveButton.textContent = "Reserving...";
     const cards = [...selectedCards];
-
     try {
-        const response = await fetch(`${API_BASE}/api/room/reserve`, {
+        const response = await fetch("/api/room/reserve", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type":"application/json" },
             body: JSON.stringify({ initData: tg.initData, cards })
         });
         const data = await response.json();
         if (!response.ok || !data.success) throw new Error(data.error || "Reservation failed.");
-
         cards.forEach(card => { selectedCards.delete(card); reservedCards.add(card); });
         if (data.mainBalance !== undefined) player.main_balance = data.mainBalance;
         if (data.bonusBalance !== undefined) player.bonus_balance = data.bonusBalance;
@@ -1813,47 +1923,52 @@ async function reserveCards() {
     }
 }
 
+// ---------- CLAIM BINGO ----------
 async function claimBingo() {
     if (busy) return;
     if (!tg?.initData) { showToast("Telegram login required."); return; }
     if (roomData?.status !== "playing") { showToast("The game is not playing right now."); return; }
-
     busy = true;
     bingoButton.disabled = true;
     bingoButton.textContent = "Checking Bingo...";
-
     try {
-        const response = await fetch(`${API_BASE}/api/game/claim`, {
+        const response = await fetch("/api/game/claim", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type":"application/json" },
             body: JSON.stringify({ initData: tg.initData })
         });
         const data = await response.json();
         if (!response.ok || !data.success) throw new Error(data.error || "Bingo claim rejected.");
-
         showToast("🎉 BINGO! You are the winner!", "success");
         await refreshGame();
         await refreshAppBalance();
+        historyLoaded = false;
     } catch (error) {
         showToast(error.message);
         await refreshGame();
     } finally {
         busy = false;
-        bingoButton.textContent = "BINGO!";
+        bingoButton.textContent = "🎉 BINGO!";
         bingoButton.disabled = roomData?.status !== "playing";
     }
 }
 
+// ---------- REFRESH ----------
 async function refreshGame() {
     const loaded = await loadRoom();
     if (loaded) await loadPlayerGame();
 }
+async function refreshApp() {
+    if (busy) return;
+    const ok = await authenticate();
+    if (ok) await refreshGame();
+}
 
-$("winner-close-button").addEventListener("click", () => {
+// ---------- BUTTON EVENTS ----------
+   $("winner-close-button").addEventListener("click", () => {
     dismissedWinnerRound = roomData?.roundId || null;
     $("winner-message").classList.remove("show");
 });
-
 $("winner-return-button").addEventListener("click", () => {
     dismissedWinnerRound = roomData?.roundId || null;
     returnedToLobby = true;
@@ -1862,27 +1977,31 @@ $("winner-return-button").addEventListener("click", () => {
     updateScreens();
 });
 
-$("reserve-button").addEventListener("click", reserveCards);
+$("reserve-button").addEventListener("click", reserveCards)
+
 bingoButton.addEventListener("click", claimBingo);
 $("history-refresh-button").addEventListener("click", loadHistory);
 
+// ---------- START ----------
 async function startApp() {
     createCards();
     createNumberBoard();
     const ok = await authenticate();
     if (!ok) return;
     await refreshGame();
-    connectWebSocket();
     refreshTimer = setInterval(() => {
-        if (!busy && !wsConnected) {
-            refreshGame();
-            refreshAppBalance();
-        }
-    }, 2000);
+    if (!busy) {
+        refreshGame();
+        refreshAppBalance();
+    }
+}, 2000);
 }
-
 startApp();
 
+
+// ============================================================
+// 3. POPUP HELPERS + PROFILE ACTIONS + PROMO REDEMPTION
+// ============================================================
 function bbOpenModal(id) { const m = $(id); if (m) m.classList.add("show"); }
 function bbCloseModal(id) { const m = $(id); if (m) m.classList.remove("show"); }
 
@@ -1915,13 +2034,16 @@ document.querySelectorAll("[data-language]").forEach(button => {
     });
 });
 
+// ---------- PROMO REDEMPTION ----------
+
 async function bbRedeemPromo() {
-    const input = $("bb-promo-input");
-    const button = $("bb-redeem-button");
+    const input = document.getElementById("bb-promo-input");
+    const button = document.getElementById("bb-redeem-button");
+
     const code = input.value.trim();
 
     if (!code) {
-        showToast("Please enter a promo code");
+        alert("Please enter a promo code");
         return;
     }
 
@@ -1929,32 +2051,46 @@ async function bbRedeemPromo() {
     button.textContent = "Please wait...";
 
     try {
-        const response = await fetch(`${API_BASE}/api/promo/redeem`, {
+        const response = await fetch("/api/promo/redeem", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code, initData: tg.initData })
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                code: code,
+                initData: tg.initData
+            })
         });
+
         const data = await response.json();
+
         if (!response.ok || !data.success) {
             throw new Error(data.error || "Invalid promo code");
         }
 
-        showToast(data.message || "Promo code redeemed!", "success");
+        alert(data.message || "Promo code redeemed!");
         input.value = "";
-        bbCloseModal("bb-promo-modal");
-        await refreshAppBalance();
+
+        if (typeof refreshAppBalance === "function") {
+            await refreshAppBalance();
+        }
+
     } catch (error) {
-        showToast(error.message || "Something went wrong");
+        alert(error.message || "Something went wrong");
     } finally {
         button.disabled = false;
-        button.textContent = bbCurrentLanguage === "am" ? "ኮዱን ይጠቀሙ" : "Redeem Code";
+        button.textContent = bbCurrentLanguage === "am"
+            ? "ኮዱን ይጠቀሙ"
+            : "Redeem Code";
     }
 }
+
 
 $("bb-redeem-button").addEventListener("click", bbRedeemPromo);
 $("bb-promo-input").addEventListener("keydown", e => { if (e.key === "Enter") bbRedeemPromo(); });
 
+// ---------- APPLY SAVED LANGUAGE ON STARTUP ----------
 bbTranslatePage();
 </script>
 </body>
-</html>
+    </html>
