@@ -1380,7 +1380,7 @@ $("copy-telebirr").addEventListener("click", async () => {
         }
 
         showToast("Deposit request submitted. Waiting for verification.");
-
+        await loadRecentTransactions();
         $("deposit-amount").value = "";
         $("deposit-transaction-id").value = "";
         $("deposit-form").style.display = "none";
@@ -1438,7 +1438,7 @@ $("withdraw-button").addEventListener("click", () => {
         }
 
         showToast("Withdrawal request submitted successfully!");
-
+        await loadRecentTransactions();
         $("withdraw-amount").value = "";
         $("withdraw-account-name").value = "";
         $("withdraw-account-number").value = "";
