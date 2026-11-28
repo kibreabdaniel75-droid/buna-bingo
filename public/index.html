@@ -374,7 +374,48 @@ body { background:var(--bg-dark); color:var(--text-light); display:flex; justify
 
 .transaction-heading { color:var(--gold); font-size:14px; font-weight:bold; padding:8px 18px 12px; letter-spacing:.5px; }
 .transaction-empty { margin:0 15px; padding:22px 12px; text-align:center; border-top:1px solid #333; color:var(--text-muted); font-size:12px; }
+.transaction-item {
+    margin:0 15px 9px;
+    padding:13px;
+    background:#1e1e1e;
+    border:1px solid #383838;
+    border-radius:10px;
+}
 
+.transaction-item-top {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+}
+
+.transaction-type {
+    color:white;
+    font-size:13px;
+    font-weight:bold;
+}
+
+.transaction-amount {
+    color:var(--gold);
+    font-size:14px;
+    font-weight:bold;
+}
+
+.transaction-meta {
+    color:var(--text-muted);
+    font-size:11px;
+    margin-top:7px;
+}
+
+.transaction-status {
+    font-size:11px;
+    font-weight:bold;
+    margin-top:7px;
+}
+
+.transaction-status.successful { color:#27ae60; }
+.transaction-status.pending { color:#f1c40f; }
+.transaction-status.failed { color:#e74c3c; }
 .profile-header-card { margin:12px 15px 0; border:1px solid #444; background:#080808; }
 .profile-player { display:flex; align-items:center; gap:15px; padding:22px 17px; }
 .profile-avatar {
@@ -1148,12 +1189,12 @@ function switchTab(tab) {
     if (nav) nav.classList.add("active");
 
     if (tab === "history") loadHistory();
-
-    if (tab === "wallet") {
+if (tab === "wallet") {
     updateBalances(player);
+    loadRecentTransactions();
     loadAdminWithdrawals();
     loadAdminDeposits();
-    }
+}
 
     if (tab === "profile") updateProfile();
 
@@ -1163,7 +1204,117 @@ function switchTab(tab) {
 document.querySelectorAll(".nav-item").forEach(b =>
     b.addEventListener("click", () => switchTab(b.dataset.tab))
 );
+// ---------- PLAYER RECENT TRANSACTIONS ----------
+async function loadRecentTransactions() {
+    const list = $("transaction-list");
 
+    if (!tg?.initData) return;
+
+    list.replaceChildren();
+
+    const loading = document.createElement("div");
+    loading.className = "transaction-empty";
+    loading.textContent = "Loading transactions...";
+    list.appendChild(loading);
+
+    try {
+        const response = await fetch(
+            GAME_URL + "api/wallet/transactions",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    initData: tg.initData
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || "Could not load transactions.");
+        }
+
+        list.replaceChildren();
+
+        const transactions = Array.isArray(data.transactions)
+            ? data.transactions.slice(0, 10)
+            : [];
+
+        if (!transactions.length) {
+            const empty = document.createElement("div");
+            empty.className = "transaction-empty";
+            empty.textContent = "No transactions available yet.";
+            list.appendChild(empty);
+            return;
+        }
+
+        transactions.forEach(item => {
+            const card = document.createElement("div");
+            card.className = "transaction-item";
+
+            const top = document.createElement("div");
+            top.className = "transaction-item-top";
+
+            const type = document.createElement("div");
+            type.className = "transaction-type";
+            type.textContent =
+                item.type === "deposit" ? "＋ Deposit" : "－ Withdrawal";
+
+            const amount = document.createElement("div");
+            amount.className = "transaction-amount";
+            amount.textContent =
+                formatMoney(item.amount);
+
+            top.append(type, amount);
+
+            const meta = document.createElement("div");
+            meta.className = "transaction-meta";
+
+            const date = item.createdAt
+                ? new Date(
+                    String(item.createdAt).replace(" ", "T") +
+                    (String(item.createdAt).includes("Z") ? "" : "Z")
+                  )
+                : null;
+
+            meta.textContent =
+                (item.provider || "Payment").toUpperCase() +
+                " • " +
+                (date && !isNaN(date.getTime())
+                    ? date.toLocaleString()
+                    : "Date unavailable");
+
+            const status = document.createElement("div");
+            const statusValue = String(item.status || "pending").toLowerCase();
+
+            status.className = "transaction-status " +
+                (["successful", "pending", "failed"].includes(statusValue)
+                    ? statusValue
+                    : "pending");
+
+            status.textContent =
+                "Status: " +
+                statusValue.charAt(0).toUpperCase() +
+                statusValue.slice(1);
+
+            card.append(top, meta, status);
+            list.appendChild(card);
+        });
+
+    } catch (error) {
+        console.error("RECENT TRANSACTIONS ERROR:", error);
+
+        list.replaceChildren();
+
+        const message = document.createElement("div");
+        message.className = "transaction-empty";
+        message.textContent = "Could not load transactions. Please try again.";
+        list.appendChild(message);
+    }
+}
 // ---------- WALLET INTERACTIONS ----------
 $("wallet-visibility").addEventListener("click", () => {
     walletBalanceVisible = !walletBalanceVisible;
