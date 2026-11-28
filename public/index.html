@@ -1715,13 +1715,26 @@ function renderHistory() {
         summary.appendChild(top);
 
         const detailBox = document.createElement("div");
-        detailBox.className = "history-details";
-        detailBox.innerHTML =
-            `<div><strong>Cards:</strong> ${Number(item.cardsCount || 0)}</div>` +
-            `<div><strong>Total spent:</strong> ${formatMoney(item.amountSpent)}</div>` +
-            `<div><strong>Room ID:</strong> ${item.roomId || "—"}</div>` +
-            `<div><strong>Reserved card numbers:</strong></div>`;
+detailBox.className = "history-details";
+        const cardsCountLine = document.createElement("div");
+const cardsLabel = document.createElement("strong");
+cardsLabel.textContent = "Cards:";
+cardsCountLine.append(cardsLabel, document.createTextNode(" " + String(Number(item.cardsCount || 0))));
 
+const spentLine = document.createElement("div");
+const spentLabel = document.createElement("strong");
+spentLabel.textContent = "Total spent:";
+spentLine.append(spentLabel, document.createTextNode(" " + formatMoney(item.amountSpent)));
+
+const roomLine = document.createElement("div");
+const roomLabel = document.createElement("strong");
+roomLabel.textContent = "Room ID:";
+roomLine.append(roomLabel, document.createTextNode(" " + String(item.roomId || "—")));
+
+const reservedLine = document.createElement("div");
+reservedLine.textContent = "Reserved card numbers:";
+
+detailBox.append(cardsCountLine, spentLine, roomLine, reservedLine);
         const cardsList = document.createElement("div");
         cardsList.className = "history-card-list";
         const slots = Array.isArray(item.cardSlots) ? item.cardSlots : [];
